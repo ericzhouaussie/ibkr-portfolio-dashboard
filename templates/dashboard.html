@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IBKR Portfolio Dashboard</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <h1>📈 IBKR Portfolio Dashboard</h1>
+      <div class="sub">策略分仓管理 · 可视化仪表盘</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn" onclick="openModal('upload-modal')">📤 上传IBKR报告</button>
+      <button class="btn" onclick="openModal('cash-modal')">💵 更新现金</button>
+      <button class="btn" onclick="openModal('strategy-modal')">➕ 新增策略</button>
+      <button class="btn" onclick="openModal('target-modal')">🎯 目标配比</button>
+      <button class="btn" onclick="openModal('goal-modal')">🏆 挑战目标</button>
+    </div>
+  </div>
+
+  <!-- Challenge Progress Banner -->
+  <div class="challenge-banner">
+    <div class="challenge-info">
+      <div class="label">🏆 百万美金挑战</div>
+      <div class="goal-text" id="challenge-amount">$0 / $1,000,000</div>
+      <div class="pct-text" id="challenge-pct">0.0%</div>
+    </div>
+    <div class="progress-track">
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Row -->
+  <div class="stats-row" id="stats-row"></div>
+
+  <!-- Main Content: Strategies (left) + Charts (right) -->
+  <div class="main-grid">
+    <div class="main-col" id="strategy-list">
+      <!-- Strategy cards rendered by JS -->
+    </div>
+    <div class="main-col">
+      <div class="chart-card">
+        <div class="chart-title">📊 策略仓位分布</div>
+        <div id="chart-strategy-pie" class="chart"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">💰 各策略盈亏</div>
+        <div id="chart-strategy-pnl" class="chart"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">🎯 目标策略配比对比</div>
+        <div id="target-comparison" style="padding: 4px 0"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Upload Modal -->
+<div class="modal-overlay" id="upload-modal">
+  <div class="modal">
+    <h3>📤 上传IBKR报告</h3>
+    <form id="upload-form" onsubmit="handleUpload(event)">
+      <input type="file" id="file-input" name="file" accept=".csv,.xlsx" style="display:none"
+        onchange="document.querySelector('#upload-zone p').textContent=this.files[0]?.name||'点击或拖拽文件到此处'">
+      <div id="upload-zone" class="upload-zone">
+        <span style="font-size: 2rem">📄</span>
+        <p>点击或拖拽CSV/Excel文件到此处</p>
+        <p style="font-size: 0.7rem; margin-top: 4px; color: var(--text-muted)">Flex Query CSV · 每日活动报告</p>
+      </div>
+      <div class="form-group" style="margin-top: 12px">
+        <label>导入到策略</label>
+        <select name="strategy" id="upload-strategy"></select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="closeModal('upload-modal')">取消</button>
+        <button type="submit" class="btn btn-primary">导入</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Cash Modal -->
+<div class="modal-overlay" id="cash-modal">
+  <div class="modal">
+    <h3>💵 更新现金仓位</h3>
+    <form onsubmit="handleCashUpdate(event)">
+      <div class="form-group">
+        <label>现金金额 (USD)</label>
+        <input id="cash-input" type="number" step="0.01" placeholder="50000">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="closeModal('cash-modal')">取消</button>
+        <button type="submit" class="btn btn-primary">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- New Strategy Modal -->
+<div class="modal-overlay" id="strategy-modal">
+  <div class="modal">
+    <h3>➕ 新增策略分组</h3>
+    <form onsubmit="handleAddStrategy(event)">
+      <div class="form-group">
+        <label>策略名称</label>
+        <input id="new-strat-name" type="text" placeholder="例: 期权策略仓">
+      </div>
+      <div class="form-group">
+        <label>图标 (emoji)</label>
+        <input id="new-strat-icon" type="text" placeholder="🎯" maxlength="4">
+      </div>
+      <div class="form-group">
+        <label>颜色</label>
+        <input id="new-strat-color" type="color" value="#8b8d9a">
+      </div>
+      <div class="form-group">
+        <label>描述</label>
+        <input id="new-strat-desc" type="text" placeholder="策略说明">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="closeModal('strategy-modal')">取消</button>
+        <button type="submit" class="btn btn-primary">创建</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Target Allocation Modal -->
+<div class="modal-overlay" id="target-modal">
+  <div class="modal">
+    <h3>🎯 目标策略配比</h3>
+    <p style="color: var(--text-dim); font-size: 0.8rem; margin-bottom: 12px">设置各策略的理想占比</p>
+    <div id="target-rows"></div>
+    <button class="btn" onclick="addTargetRow()" style="margin-top: 8px; width: 100%">+ 添加</button>
+    <div class="modal-actions">
+      <button type="button" class="btn" onclick="closeModal('target-modal')">取消</button>
+      <button class="btn btn-primary" onclick="handleTargetSave(event)">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Goal Modal -->
+<div class="modal-overlay" id="goal-modal">
+  <div class="modal">
+    <h3>🏆 设置挑战目标</h3>
+    <div class="form-group">
+      <label>目标金额 (USD)</label>
+      <input id="goal-input" type="number" value="1000000" step="10000">
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn" onclick="closeModal('goal-modal')">取消</button>
+      <button class="btn btn-primary" onclick="updateGoal()">确定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Inject server data for external JS
+  window.__PORTFOLIO__ = {{ portfolio | tojson }};
+  window.__TARGETS__ = {{ targets | tojson if targets else '[]' }};
+</script>
+<script src="/static/js/dashboard.js"></script>
+</body>
+</html>
