@@ -8,6 +8,7 @@ from werkzeug.utils import secure_filename
 import pandas as pd
 from pathlib import Path
 import json
+import os
 import subprocess
 import re
 from datetime import datetime
@@ -124,9 +125,37 @@ def load_portfolio():
     save_portfolio(DEFAULT_PORTFOLIO)
     return DEFAULT_PORTFOLIO
 
+def _git_sync():
+    """Auto git commit + push data changes (background, non-blocking)."""
+    import threading
+    def _sync():
+        try:
+            repo = Path(__file__).parent
+            subprocess.run(['git', '-C', str(repo), 'add', 'data/'],
+                           capture_output=True, timeout=10)
+            result = subprocess.run(
+                ['git', '-C', str(repo), 'commit', '-m', f'data: auto-save {datetime.now().strftime("%Y-%m-%d %H:%M")}'],
+                capture_output=True, timeout=10)
+            if result.returncode != 0:
+                return
+            token = os.environ.get('GITHUB_TOKEN', '')
+            if token:
+                subprocess.run(
+                    ['git', '-C', str(repo), 'push',
+                     f'https://x-access-token:{token}@github.com/ericzhouaussie/ibkr-portfolio-dashboard.git', 'main'],
+                    capture_output=True, timeout=30)
+            else:
+                subprocess.run(['git', '-C', str(repo), 'push', 'origin', 'main'],
+                               capture_output=True, timeout=30)
+        except Exception:
+            pass
+    threading.Thread(target=_sync, daemon=True).start()
+
+
 def save_portfolio(data):
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     PORTFOLIO_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    _git_sync()
 
 
 def add_cash_flow(amount, currency, rate, note="", flow_type="deposit"):

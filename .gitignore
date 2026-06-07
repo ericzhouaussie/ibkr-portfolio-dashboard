@@ -5,5 +5,7 @@ uploads/*
 !uploads/.gitkeep
 data/*
 !data/.gitkeep
+!data/portfolio.json
+!data/target_allocation.json
 venv/
 .env
