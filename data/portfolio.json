@@ -41,12 +41,12 @@
       "id": "p1",
       "symbol": "AAPL",
       "strategy": "dca",
-      "quantity": 305.0,
-      "avg_price": 114.18,
-      "current_price": 0.0,
-      "market_value": 0.0,
-      "pnl": -34824.9,
-      "pnl_pct": -100.0,
+      "quantity": 310.0,
+      "avg_price": 114.76,
+      "current_price": 150.0,
+      "market_value": 46500.0,
+      "pnl": 10924.4,
+      "pnl_pct": 30.71,
       "notes": ""
     },
     {
@@ -337,6 +337,20 @@
       "pnl": 0,
       "strategy": "dca",
       "note": "DCA加仓 5.0股 @0.00",
+      "commission": 0.35,
+      "fees": 0
+    },
+    {
+      "id": "hist_1ee6b92f",
+      "date": "2026-06-07",
+      "symbol": "AAPL",
+      "action": "BUY",
+      "quantity": 5.0,
+      "price": 150.0,
+      "cost_price": 0,
+      "pnl": 0,
+      "strategy": "dca",
+      "note": "DCA加仓 5.0股 @150.00",
       "commission": 0.35,
       "fees": 0
     }
