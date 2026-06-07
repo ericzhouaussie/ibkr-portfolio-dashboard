@@ -12,7 +12,10 @@ import subprocess
 import re
 from datetime import datetime
 
-from parser import detect_format, parse_positions, parse_trades
+from parser import (
+    detect_format, parse_positions, parse_trades,
+    parse_transaction_history, apply_transactions_to_portfolio,
+)
 
 app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = Path(__file__).parent / "uploads"
@@ -357,6 +360,36 @@ def delete_cash_flow(flow_id):
         save_portfolio(portfolio)
         return jsonify({"success": True, "cash_base_usd": portfolio['cash_base_usd']})
     return jsonify({"error": "记录不存在"}), 404
+
+
+@app.route("/api/portfolio/transactions/upload", methods=["POST"])
+def upload_transactions():
+    """Upload IBKR transaction history CSV (中文交易历史)."""
+    portfolio = load_portfolio()
+    if "file" not in request.files:
+        return jsonify({"error": "请选择文件"}), 400
+    file = request.files["file"]
+    if file.filename == "":
+        return jsonify({"error": "文件名为空"}), 400
+
+    filename = secure_filename(file.filename)
+    filepath = app.config["UPLOAD_FOLDER"] / filename
+    filepath.parent.mkdir(parents=True, exist_ok=True)
+    file.save(filepath)
+
+    try:
+        transactions = parse_transaction_history(str(filepath))
+        portfolio, new_tx = apply_transactions_to_portfolio(transactions, portfolio)
+        save_portfolio(portfolio)
+        return jsonify({
+            "success": True,
+            "transactions_count": len(new_tx),
+            "total_transactions": len(portfolio.get("transactions", [])),
+            "cash_base_usd": portfolio.get("cash_base_usd", 0),
+            "message": f"成功导入 {len(new_tx)} 条新交易记录"
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 
 @app.route("/api/portfolio/strategy", methods=["POST"])

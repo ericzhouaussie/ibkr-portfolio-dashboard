@@ -18,6 +18,7 @@
     </div>
     <div class="header-actions">
       <button class="btn" onclick="openModal('upload-modal')">📤 上传IBKR报告</button>
+      <button class="btn" onclick="openModal('txn-upload-modal')">📊 上传交易历史</button>
       <button class="btn" onclick="openModal('cash-modal')">💵 更新现金</button>
       <button class="btn" onclick="openModal('strategy-modal')">➕ 新增策略</button>
       <button class="btn" onclick="openModal('target-modal')">🎯 目标配比</button>
@@ -278,5 +279,31 @@
   window.__TARGETS__ = {{ targets | tojson if targets else '[]' }};
 </script>
 <script src="/static/js/dashboard.js"></script>
+<div class="modal-overlay" id="txn-upload-modal">
+  <div class="modal" style="max-width: 520px">
+    <div class="modal-header">
+      <h3>📊 上传交易历史（IBKR CSV）</h3>
+      <button class="btn" onclick="closeModal('txn-upload-modal')">✕ 取消</button>
+    </div>
+    <div style="padding: 16px">
+      <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 12px">
+        支持 IBKR 中文交易历史 CSV（Transaction History 格式）。<br>
+        系统将自动识别：股票买卖、期权交易、股息、出入金、换汇等记录。
+      </p>
+      <form onsubmit="uploadTransactionHistory(event)">
+        <div style="margin-bottom: 12px">
+          <input type="file" id="txn-file-input" accept=".csv" required
+                 style="color: var(--text); font-size: 0.9rem; width: 100%">
+        </div>
+        <div id="txn-upload-result" style="margin-top: 12px; font-size: 0.85rem"></div>
+        <div style="margin-top: 16px; display: flex; gap: 8px; justify-content: flex-end">
+          <button type="button" class="btn" onclick="closeModal('txn-upload-modal')">取消</button>
+          <button type="submit" class="btn btn-primary" id="txn-upload-btn">📊 解析并导入</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

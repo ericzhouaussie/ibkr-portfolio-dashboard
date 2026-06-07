@@ -41,7 +41,8 @@ function getPositionsForStrategy(stratId) {
 }
 
 function getStrategyValue(stratId) {
-  if (stratId === 'cash') return portfolio.cash || 0;
+  // 'cash' 策略：显示资金流水累计的现金基础
+  if (stratId === 'cash') return portfolio.cash_base_usd || 0;
   return getPositionsForStrategy(stratId).reduce((s, p) => s + p.market_value, 0);
 }
 
@@ -51,7 +52,9 @@ function getStrategyPnl(stratId) {
 }
 
 function getTotalValue() {
-  let v = (portfolio.cash || 0) + (portfolio.cash_base_usd || 0);
+  // 总资产 = 各策略持仓市值之和 + 现金基础(cash_base_usd)
+  // 注意：不再重复加 portfolio.cash，cash 策略已通过 getStrategyValue('cash') 计入
+  let v = (portfolio.cash_base_usd || 0);
   (portfolio.positions || []).forEach(p => v += p.market_value);
   return v;
 }
@@ -92,10 +95,10 @@ function renderStats() {
       <div class="value ${pctClass(pnl)}">${fmtNum(pnl)}</div>
       <div class="sub">${fmtPct(pnlPct)}</div>
     </div>
-    <div class="stat-card">
-      <div class="label">现金</div>
-      <div class="value" style="color: var(--blue)">${fmtNum(portfolio.cash || 0)}</div>
-      <div class="sub">${total ? ((portfolio.cash || 0) / total * 100).toFixed(1) : '0'}%</div>
+    <div class="stat-card" style="cursor:pointer" onclick="openCashFlowModal()" title="点击查看资金流水">
+      <div class="label">现金基础</div>
+      <div class="value" style="color: var(--blue)">${fmtNum(portfolio.cash_base_usd || 0)}</div>
+      <div class="sub">${total ? ((portfolio.cash_base_usd || 0) / total * 100).toFixed(1) : '0'}% · 点击查看流水</div>
     </div>
     <div class="stat-card">
       <div class="label">持仓标的</div>
@@ -154,7 +157,8 @@ function renderStrategies() {
           <div class="strategy-body-inner">
             ${s.id === 'cash' ? `
               <div style="padding: 12px; color: var(--text-dim); font-size: 0.85rem">
-                现金储备: <b style="color: var(--blue)">${fmtNum(portfolio.cash || 0)}</b>
+                现金基础（来自资金流水）: <b style="color: var(--blue)">${fmtNum(portfolio.cash_base_usd || 0)}</b>
+                <br><span style="font-size:0.75rem;color:var(--text-dim)">入金/出金记录请点击顶部「现金基础」卡片查看</span>
               </div>
             ` : positions.length ? `
               ${positions.map(p => {
@@ -620,6 +624,54 @@ function handleUpload(e) {
     }
   };
   xhr.open('POST', '/api/upload');
+  xhr.send(formData);
+}
+
+// === Transaction History Upload ===
+function uploadTransactionHistory(e) {
+  e.preventDefault();
+  const fileInput = document.getElementById('txn-file-input');
+  if (!fileInput.files.length) {
+    showToast('❌ 请先选择文件', 'error');
+    return;
+  }
+  const formData = new FormData();
+  formData.append('file', fileInput.files[0]);
+
+  const btn = document.getElementById('txn-upload-btn');
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ 解析中...';
+
+  const result = document.getElementById('txn-upload-result');
+  result.innerHTML = '<span style="color:var(--text-dim)">⏳ 正在解析交易记录...</span>';
+
+  const xhr = new XMLHttpRequest();
+  xhr.onload = function () {
+    btn.disabled = false;
+    btn.textContent = origText;
+    if (xhr.status === 200) {
+      const data = JSON.parse(xhr.responseText);
+      result.innerHTML = '<span style="color:var(--green)">✅ ' + data.message
+        + '<br>现金基础: $' + Number(data.cash_base_usd).toLocaleString()
+        + '<br>已导入 ' + data.total_transactions + ' 条记录</span>';
+      setTimeout(() => {
+        closeModal('txn-upload-modal');
+        refreshAll();
+        fileInput.value = '';
+        result.innerHTML = '';
+      }, 1800);
+    } else {
+      const data = JSON.parse(xhr.responseText);
+      result.innerHTML = '<span style="color:var(--red)">❌ ' + (data.error || '上传失败') + '</span>';
+    }
+  };
+  xhr.onerror = function () {
+    btn.disabled = false;
+    btn.textContent = origText;
+    result.innerHTML = '<span style="color:var(--red)">❌ 网络错误，请重试</span>';
+  };
+  xhr.open('POST', '/api/portfolio/transactions/upload');
   xhr.send(formData);
 }
 
