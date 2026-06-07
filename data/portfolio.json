@@ -41,12 +41,12 @@
       "id": "p1",
       "symbol": "AAPL",
       "strategy": "dca",
-      "quantity": 300.0,
-      "avg_price": 116.08,
-      "current_price": 307.34,
-      "market_value": 92202.0,
-      "pnl": 57378.0,
-      "pnl_pct": 164.77,
+      "quantity": 305.0,
+      "avg_price": 114.18,
+      "current_price": 0.0,
+      "market_value": 0.0,
+      "pnl": -34824.9,
+      "pnl_pct": -100.0,
       "notes": ""
     },
     {
@@ -325,6 +325,20 @@
       "note": "Swing卖出 10.0股（FIFO成本$163.75）",
       "commission": 0.35,
       "fees": 0.07
+    },
+    {
+      "id": "hist_4da7bd5f",
+      "date": "2026-06-07",
+      "symbol": "AAPL",
+      "action": "BUY",
+      "quantity": 5.0,
+      "price": 0.0,
+      "cost_price": 0,
+      "pnl": 0,
+      "strategy": "dca",
+      "note": "DCA加仓 5.0股 @0.00",
+      "commission": 0.35,
+      "fees": 0
     }
   ],
   "cash_flows": [
