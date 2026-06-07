@@ -678,3 +678,71 @@ body {
   color: var(--text-dim);
   margin-top: 2px;
 }
+
+/* History: symbol groups */
+.history-symbol-group {
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.history-symbol-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.95rem;
+}
+.history-symbol-header b {
+  font-size: 1.05rem;
+}
+
+/* Buy/Sell tags */
+.holding-tag.buy-tag {
+  background: rgba(76, 175, 80, 0.15);
+  color: #4caf50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+.holding-tag.sell-tag {
+  background: rgba(244, 67, 54, 0.15);
+  color: #f44336;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+/* Fee/cost display */
+.fee-cell {
+  color: #f59e0b;
+}
+
+/* Month group collapse/expand */
+.month-group {
+  margin-bottom: 12px;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.03);
+}
+.month-summary {
+  padding: 10px 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  transition: background 0.2s;
+}
+.month-summary:hover {
+  background: rgba(255,255,255,0.05);
+}
+.month-summary b {
+  color: var(--text-primary);
+}
+.month-stats {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+.month-content {
+  padding: 0 6px 6px;
+}

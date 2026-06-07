@@ -127,6 +127,37 @@
   </div>
 </div>
 
+<!-- Sell Modal -->
+<div class="modal-overlay" id="sell-modal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h3>📤 卖出持仓</h3>
+      <button class="btn" onclick="closeModal('sell-modal')">✕ 取消</button>
+    </div>
+    <div style="padding:16px">
+      <div style="margin-bottom:12px;font-size:0.9rem;color:var(--text-dim)">
+        标的: <b id="sell-symbol"></b> · 持有 <b id="sell-qty-max"></b> 股 · 成本 $<b id="sell-cost"></b>/股
+      </div>
+      <form onsubmit="submitSell(event)">
+        <input type="hidden" id="sell-pos-id">
+        <div class="form-group">
+          <label>卖出数量（股）</label>
+          <input id="sell-qty" type="number" step="1" min="1" required style="width:100%">
+        </div>
+        <div class="form-group">
+          <label>卖出价格（每股 $）</label>
+          <input id="sell-price" type="number" step="0.01" required style="width:100%">
+        </div>
+        <div id="sell-preview" style="margin:12px 0;font-size:0.85rem;color:var(--text-dim)"></div>
+        <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
+          <button type="button" class="btn" onclick="closeModal('sell-modal')">取消</button>
+          <button type="submit" class="btn btn-primary" style="border-color:var(--green);color:var(--green)">📤 确认卖出</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <!-- Close Position Modal -->
 <div class="modal-overlay" id="close-modal">
   <div class="modal">
@@ -152,7 +183,7 @@
 <div class="modal-overlay" id="history-modal" style="padding: 20px">
   <div class="modal" style="max-width: 900px; max-height: 80vh; overflow-y: auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <h3>📜 期权交易历史记录</h3>
+      <h3>📜 历史交易记录</h3>
       <div>
         <button class="btn btn-sm" onclick="clearHistory()" style="margin-right:8px">🗑️ 清空</button>
         <button class="btn" onclick="closeModal('history-modal')">✕ 关闭</button>

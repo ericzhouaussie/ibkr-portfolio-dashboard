@@ -226,6 +226,7 @@ function renderStrategies() {
                     </div>
                     <div class="holding-pnl ${pctClass(p.pnl)}">${fmtNum(p.pnl)} (${fmtPct(p.pnl_pct)})</div>
                     <div class="holding-actions">
+                      <button class="btn btn-sm" style="border-color:var(--green);color:var(--green)" onclick="openSellModal('${p.id}','${p.symbol}',${p.quantity},${p.avg_price})">📤 卖出</button>
                       <button class="btn btn-sm" onclick="editPosition('${p.id}','${s.id}')">✏️</button>
                       <button class="btn btn-sm btn-danger" onclick="deletePosition('${p.id}')">🗑️</button>
                     </div>
@@ -650,12 +651,10 @@ function refreshPrices() {
   btn.textContent = '⏳ 更新中...';
   btn.disabled = true;
   
-  const apiKey = localStorage.getItem('twelvedata_api_key') || 'demo';
-  
   fetch('/api/refresh-prices', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ api_key: apiKey }),
+    body: JSON.stringify({}),
   })
     .then(r => r.json())
     .then(res => {
@@ -856,6 +855,60 @@ function deleteCashFlow(id) {
     .catch(() => showToast('❌ 删除失败', 'error'));
 }
 
+// === Sell Position (DCA + Swing FIFO) ===
+function openSellModal(posId, symbol, qty, avgPrice) {
+  const modal = document.getElementById('sell-modal');
+  modal.classList.add('active');
+  document.getElementById('sell-pos-id').value = posId;
+  document.getElementById('sell-symbol').textContent = symbol;
+  document.getElementById('sell-qty-max').textContent = qty;
+  document.getElementById('sell-cost').textContent = avgPrice.toFixed(2);
+  document.getElementById('sell-qty').value = '';
+  document.getElementById('sell-price').value = '';
+  document.getElementById('sell-preview').innerHTML = '';
+  document.getElementById('sell-qty').focus();
+
+  const updatePreview = () => {
+    const q = parseFloat(document.getElementById('sell-qty').value) || 0;
+    const p = parseFloat(document.getElementById('sell-price').value) || 0;
+    if (q > 0 && p > 0) {
+      const revenue = q * p;
+      const cost = q * avgPrice;
+      const pnl = revenue - cost;
+      const color = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+      document.getElementById('sell-preview').innerHTML =
+        `<span style="color:${color}">预估盈亏: $${pnl.toFixed(2)} (${((pnl/cost)*100).toFixed(2)}%)</span>`;
+    }
+  };
+  document.getElementById('sell-qty').oninput = updatePreview;
+  document.getElementById('sell-price').oninput = updatePreview;
+}
+
+function submitSell(e) {
+  e.preventDefault();
+  const posId = document.getElementById('sell-pos-id').value;
+  const qty = parseFloat(document.getElementById('sell-qty').value);
+  const price = parseFloat(document.getElementById('sell-price').value);
+  if (!qty || qty <= 0) { showToast('❌ 请输入有效数量', 'error'); return; }
+  if (!price || price <= 0) { showToast('❌ 请输入有效价格', 'error'); return; }
+
+  fetch(`/api/portfolio/position/${posId}/sell`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ quantity: qty, price: price }),
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      portfolio = res.portfolio;
+      refreshAll();
+      closeModal('sell-modal');
+      showToast(`✅ 卖出成功，盈亏: ${res.pnl > 0 ? '+' : ''}$${res.pnl.toFixed(2)}`);
+    } else { showToast('❌ ' + (res.error || '卖出失败'), 'error'); }
+  })
+  .catch(err => showToast('❌ 网络错误', 'error'));
+}
+
 // === Close Position (平仓) ===
 function closePosition(posId, stratId, symbol) {
   const modal = document.getElementById('close-modal');
@@ -908,59 +961,216 @@ function openHistory() {
 function renderHistory() {
   const container = document.getElementById('history-list');
   if (!container) return;
-  
-  // 从portfolio中加载历史记录
   const history = portfolio.history || historyList || [];
-  
   if (!history.length) {
-    container.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:40px">暂无平仓记录</p>';
+    container.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:40px">暂无交易记录</p>';
     return;
   }
-  
-  let html = '<table class="history-table"><thead><tr>';
-  html += '<th>标的</th><th>策略</th><th>类型</th><th>Strike</th><th>到期日</th><th>合约</th>';
-  html += '<th>开仓价</th><th>平仓价</th><th>Delta</th><th>平仓日期</th><th>盈亏</th><th>盈亏%</th>';
-  html += '</tr></thead><tbody>';
-  
-  // 按close_date倒序
-  const sorted = [...history].sort((a, b) => (b.close_date || '').localeCompare(a.close_date || ''));
-  
-  sorted.forEach(h => {
-    const type = h.strategy === 'wheel' 
-      ? (h.wheel_type === 'sell_put' ? 'Sell Put' : h.wheel_type === 'covered_call' ? 'Covered Call' : '-') 
-      : 'LEAPS Call';
-    const openPrice = h.strategy === 'wheel' ? (h.open_premium || 0) : (h.open_price || 0);
-    
-    html += `<tr>
-      <td><b>${h.symbol}</b></td>
-      <td>${h.strategy === 'wheel' ? '🎡 Wheel' : '🚀 LEAPS'}</td>
-      <td><span class="holding-tag ${h.strategy === 'wheel' ? (h.wheel_type || '') : 'leaps'}">${type}</span></td>
-      <td>K${h.strike}</td>
-      <td>${h.expiry}</td>
-      <td>${h.contracts}</td>
-      <td>$${openPrice.toFixed(2)}</td>
-      <td>$${(h.close_price || 0).toFixed(2)}</td>
-      <td>${h.open_delta || '-'}</td>
-      <td>${h.close_date || '-'}</td>
-      <td class="${h.pnl >= 0 ? 'green' : 'red'}">$${h.pnl.toFixed(2)}</td>
-      <td class="${h.pnl >= 0 ? 'green' : 'red'}">${h.pnl >= 0 ? '+' : ''}${h.pnl_pct.toFixed(2)}%</td>
-    </tr>`;
-  });
-  
-  html += '</tbody></table>';
-  
-  // 汇总统计
-  const totalPnl = history.reduce((s, h) => s + (h.pnl || 0), 0);
-  const winCount = history.filter(h => (h.pnl || 0) > 0).length;
-  const lossCount = history.filter(h => (h.pnl || 0) < 0).length;
-  const winRate = history.length ? (winCount / history.length * 100).toFixed(1) : 0;
-  
-  html += `<div class="history-summary">
-    <div class="stat-card"><div class="label">总盈亏</div><div class="value ${totalPnl >= 0 ? 'green' : 'red'}">${fmtNum(totalPnl)}</div></div>
-    <div class="stat-card"><div class="label">交易次数</div><div class="value">${history.length}</div></div>
-    <div class="stat-card"><div class="label">胜率</div><div class="value">${winRate}%</div><div class="sub">${winCount}胜 ${lossCount}负</div></div>
+
+  const stockTrades = history.filter(h => h.action === 'BUY' || h.action === 'SELL');
+  const optionTrades = history.filter(h => h.strategy === 'wheel' || h.strategy === 'leaps');
+  const allTrades = history;
+
+  // 按年月分组
+  function groupByMonth(arr, dateKey) {
+    const m = {};
+    arr.forEach(h => {
+      const d = h[dateKey] || h.close_date || h.date || '';
+      const ym = d.substring(0, 7); // YYYY-MM
+      (m[ym] = m[ym] || []).push(h);
+    });
+    // 每月内按日期降序
+    Object.values(m).forEach(a => a.sort((a,b) => (b[dateKey]||b.date||'').localeCompare(a[dateKey]||a.date||'')));
+    return m;
+  }
+
+  // 按个股分组
+  function groupBy(arr, key) {
+    const m = {};
+    arr.forEach(h => { (m[h.symbol] = m[h.symbol] || []).push(h); });
+    Object.values(m).forEach(a => a.sort((a,b) => (b[key]||'').localeCompare(a[key]||'')));
+    return m;
+  }
+
+  function stats(trades, isOption) {
+    if (isOption) {
+      const pnls = trades.map(h => h.pnl || 0);
+      const wins = pnls.filter(p => p > 0);
+      const losses = pnls.filter(p => p < 0);
+      const totalComm = trades.reduce((s,h) => s + (h.commission||0), 0);
+      return {
+        count: trades.length, totalPnl: pnls.reduce((a,b) => a+b, 0),
+        winCount: wins.length, lossCount: losses.length, totalCost: totalComm
+      };
+    }
+    const buys = trades.filter(h => h.action === 'BUY');
+    const sells = trades.filter(h => h.action === 'SELL');
+    const wins = sells.filter(h => (h.pnl||0) > 0);
+    const losses = sells.filter(h => (h.pnl||0) < 0);
+    const totalComm = trades.reduce((s,h) => s + (h.commission||0) + (h.fees||0), 0);
+    return {
+      buyQty: buys.reduce((s,h) => s + (h.quantity||0), 0),
+      sellQty: sells.reduce((s,h) => s + (h.quantity||0), 0),
+      totalPnl: sells.reduce((s,h) => s + (h.pnl||0), 0),
+      sellCount: sells.length, winCount: wins.length, lossCount: losses.length,
+      totalCost: totalComm
+    };
+  }
+
+  // 累积佣金/税费
+  const cumComm = allTrades.reduce((s,h) => s + (h.commission||0), 0);
+  const cumFees = allTrades.reduce((s,h) => s + (h.fees||0), 0);
+  const cumTotal = cumComm + cumFees;
+
+  // 年月中文标签
+  const monthLabel = ym => {
+    const [y, m] = ym.split('-');
+    return `${y}年${parseInt(m)}月`;
+  };
+
+  let html = '';
+
+  // === 总览卡片 ===
+  html += `<div class="history-summary" style="margin-bottom:20px">
+    <div class="stat-card"><div class="label">总交易笔数</div><div class="value">${allTrades.length}</div></div>
+    <div class="stat-card"><div class="label">累积佣金</div><div class="value fee-cell">$${cumComm.toFixed(2)}</div></div>
+    <div class="stat-card"><div class="label">累积税费</div><div class="value fee-cell">$${cumFees.toFixed(2)}</div></div>
+    <div class="stat-card"><div class="label">累积交易成本</div><div class="value fee-cell" style="font-size:1.1rem">$${cumTotal.toFixed(2)}</div></div>
   </div>`;
-  
+
+  // === 正股交易（按年月分组） ===
+  if (stockTrades.length > 0) {
+    const all = stats(stockTrades, false);
+    const wr = all.sellCount ? (all.winCount/all.sellCount*100).toFixed(1) : '0.0';
+    const stockByMonth = groupByMonth(stockTrades, 'date');
+
+    html += `<h3 style="font-size:1.1rem;margin-bottom:12px">📈 正股交易</h3>`;
+    html += `<div class="history-summary" style="margin-bottom:16px">
+      <div class="stat-card"><div class="label">累计买入</div><div class="value">${all.buyQty} 股</div></div>
+      <div class="stat-card"><div class="label">累计卖出</div><div class="value">${all.sellQty} 股</div></div>
+      <div class="stat-card"><div class="label">总盈亏</div><div class="value ${all.totalPnl>=0?'green':'red'}">$${fmtNum(all.totalPnl)}</div></div>
+      <div class="stat-card"><div class="label">卖出胜率</div><div class="value">${wr}%</div><div class="sub">${all.winCount}胜 ${all.lossCount}负</div></div>
+      <div class="stat-card"><div class="label">交易成本</div><div class="value fee-cell">$${all.totalCost.toFixed(2)}</div></div>
+    </div>`;
+
+    // 按月份展示
+    const sortedMonths = Object.keys(stockByMonth).sort().reverse();
+    for (const ym of sortedMonths) {
+      const monthTrades = stockByMonth[ym];
+      const ms = stats(monthTrades, false);
+      const mwr = ms.sellCount ? (ms.winCount/ms.sellCount*100).toFixed(1) : '0.0';
+      const mComm = monthTrades.reduce((s,h) => s + (h.commission||0) + (h.fees||0), 0);
+
+      html += `<details class="month-group" open>
+        <summary class="month-summary">📅 <b>${monthLabel(ym)}</b>
+          <span class="month-stats">${monthTrades.length}笔 · 净盈亏 <span class="${ms.totalPnl>=0?'green':'red'}">$${ms.totalPnl.toFixed(2)}</span> · 成本 $${mComm.toFixed(2)}</span>
+        </summary>
+        <div class="month-content">`;
+
+      // 月内按个股分组
+      const symGroups = groupBy(monthTrades, 'date');
+      for (const [sym, trades] of Object.entries(symGroups)) {
+        const s = stats(trades, false);
+        const swr = s.sellCount ? (s.winCount/s.sellCount*100).toFixed(1) : '0.0';
+        html += `<div class="history-symbol-group">
+          <div class="history-symbol-header">
+            <b>${sym}</b>
+            <span style="font-size:0.8rem;color:var(--text-dim)">买入${s.buyQty}股 · 卖出${s.sellQty}股 · <span class="${s.totalPnl>=0?'green':'red'}">$${s.totalPnl.toFixed(2)}</span> · 胜率${swr}%</span>
+          </div>
+          <table class="history-table"><thead><tr>
+            <th>日期</th><th>操作</th><th>数量</th><th>价格</th><th>成本</th><th>盈亏</th><th>佣金</th><th>税费</th><th>交易成本</th><th>备注</th>
+          </tr></thead><tbody>`;
+        trades.forEach(h => {
+          const cls = h.action === 'BUY' ? 'buy-tag' : 'sell-tag';
+          const comm = h.commission || 0;
+          const fees = h.fees || 0;
+          html += `<tr>
+            <td>${h.date||'-'}</td>
+            <td><span class="holding-tag ${cls}">${h.action==='BUY'?'买入':'卖出'}</span></td>
+            <td>${h.quantity||'-'}</td>
+            <td>$${(h.price||0).toFixed(2)}</td>
+            <td>${h.cost_price ? '$'+h.cost_price.toFixed(2) : '-'}</td>
+            <td class="${(h.pnl||0)>=0?'green':'red'}">${h.pnl ? '$'+h.pnl.toFixed(2) : '-'}</td>
+            <td>$${comm.toFixed(2)}</td>
+            <td>${fees > 0 ? '$'+fees.toFixed(2) : '-'}</td>
+            <td class="fee-cell">$${(comm+fees).toFixed(2)}</td>
+            <td style="font-size:0.8rem;color:var(--text-dim)">${h.note||'-'}</td>
+          </tr>`;
+        });
+        html += '</tbody></table></div>';
+      }
+      html += '</div></details>';
+    }
+  }
+
+  // === 期权交易（按年月分组） ===
+  if (optionTrades.length > 0) {
+    const all = stats(optionTrades, true);
+    const wr = all.count ? (all.winCount/all.count*100).toFixed(1) : '0.0';
+    const optByMonth = groupByMonth(optionTrades, 'close_date');
+
+    html += `<h3 style="font-size:1.1rem;margin:20px 0 12px">🎲 期权交易</h3>`;
+    html += `<div class="history-summary" style="margin-bottom:16px">
+      <div class="stat-card"><div class="label">交易次数</div><div class="value">${all.count}</div></div>
+      <div class="stat-card"><div class="label">总盈亏</div><div class="value ${all.totalPnl>=0?'green':'red'}">$${fmtNum(all.totalPnl)}</div></div>
+      <div class="stat-card"><div class="label">胜率</div><div class="value">${wr}%</div><div class="sub">${all.winCount}胜 ${all.lossCount}负</div></div>
+      <div class="stat-card"><div class="label">交易成本</div><div class="value fee-cell">$${all.totalCost.toFixed(2)}</div></div>
+    </div>`;
+
+    const sortedMonths = Object.keys(optByMonth).sort().reverse();
+    for (const ym of sortedMonths) {
+      const monthTrades = optByMonth[ym];
+      const ms = stats(monthTrades, true);
+      const mwr = ms.count ? (ms.winCount/ms.count*100).toFixed(1) : '0.0';
+      const mComm = monthTrades.reduce((s,h) => s + (h.commission||0), 0);
+
+      html += `<details class="month-group" open>
+        <summary class="month-summary">📅 <b>${monthLabel(ym)}</b>
+          <span class="month-stats">${monthTrades.length}笔 · 净盈亏 <span class="${ms.totalPnl>=0?'green':'red'}">$${ms.totalPnl.toFixed(2)}</span> · 成本 $${mComm.toFixed(2)}</span>
+        </summary>
+        <div class="month-content">`;
+
+      // 月内按个股分组
+      const symGroups = groupBy(monthTrades, 'close_date');
+      for (const [sym, trades] of Object.entries(symGroups)) {
+        const s = stats(trades, true);
+        const swr = s.count ? (s.winCount/s.count*100).toFixed(1) : '0.0';
+        html += `<div class="history-symbol-group">
+          <div class="history-symbol-header">
+            <b>${sym}</b>
+            <span style="font-size:0.8rem;color:var(--text-dim)">${s.count}笔 · <span class="${s.totalPnl>=0?'green':'red'}">$${s.totalPnl.toFixed(2)}</span> · 胜率${swr}%</span>
+          </div>
+          <table class="history-table"><thead><tr>
+            <th>类型</th><th>策略</th><th>Strike</th><th>到期日</th><th>合约</th><th>开仓价</th><th>平仓价</th><th>Delta</th><th>平仓日</th><th>盈亏</th><th>盈亏%</th><th>佣金</th><th>交易成本</th>
+          </tr></thead><tbody>`;
+        trades.forEach(h => {
+          const type = h.strategy==='wheel'
+            ? (h.wheel_type==='sell_put'?'Sell Put':h.wheel_type==='covered_call'?'Covered Call':'-')
+            : 'LEAPS Call';
+          const openP = h.strategy==='wheel'?(h.open_premium||0):(h.open_price||0);
+          const comm = h.commission || 0;
+          html += `<tr>
+            <td><span class="holding-tag ${h.strategy==='wheel'?(h.wheel_type||''):'leaps'}">${type}</span></td>
+            <td>${h.strategy==='wheel'?'🎡 Wheel':'🚀 LEAPS'}</td>
+            <td>K${h.strike}</td>
+            <td>${h.expiry}</td>
+            <td>${h.contracts}</td>
+            <td>$${openP.toFixed(2)}</td>
+            <td>$${(h.close_price||0).toFixed(2)}</td>
+            <td>${h.open_delta||'-'}</td>
+            <td>${h.close_date||'-'}</td>
+            <td class="${h.pnl>=0?'green':'red'}">$${h.pnl.toFixed(2)}</td>
+            <td class="${h.pnl>=0?'green':'red'}">${h.pnl>=0?'+':''}${h.pnl_pct.toFixed(2)}%</td>
+            <td>$${comm.toFixed(2)}</td>
+            <td class="fee-cell">$${comm.toFixed(2)}</td>
+          </tr>`;
+        });
+        html += '</tbody></table></div>';
+      }
+      html += '</div></details>';
+    }
+  }
+
   container.innerHTML = html;
 }
 

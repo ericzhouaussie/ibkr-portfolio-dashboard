@@ -25,6 +25,58 @@ DATA_DIR = Path(__file__).parent / "data"
 PORTFOLIO_FILE = DATA_DIR / "portfolio.json"
 TARGET_FILE = DATA_DIR / "target_allocation.json"
 
+# === IBKR 佣金费率配置（阶梯式 Tiered）===
+COMMISSION_CONFIG = {
+    # 阶梯式佣金 (Tiered)
+    "stock_per_share": 0.0035,      # 美股每股 $0.0035（<10万股/月）
+    "stock_min_per_order": 0.35,    # 最低 $0.35/笔
+    "stock_max_pct": 0.005,        # 最高交易额的 0.5%
+    # 期权阶梯式
+    "option_per_contract": 0.65,   # 每份合约 $0.65（<10万合约/月）
+    "option_min_per_order": 0.35,   # 最低 $0.35/笔
+    # SEC/FINRA/TAF 等监管费（正股卖出时）
+    "sec_fee_rate": 0.0000278,     # SEC fee ~0.00278% of sell amount
+    "taf_per_share": 0.000166,     # TAF (FINRA) ~$0.000166/share
+    "finra_taf_min": 0.01,         # FINRA TAF 最低 $0.01
+}
+
+def calc_commission(quantity, price, is_option=False, contracts=None):
+    """计算单笔交易佣金（含税费）
+    
+    参数:
+        quantity: 股数（正股）
+        price: 每股/每股期权价格
+        is_option: 是否期权
+        contracts: 合约数（期权时使用）
+    返回: {commission: float, fees: float, total_cost: float}
+    """
+    if is_option and contracts:
+        # 期权佣金
+        commission = max(COMMISSION_CONFIG["option_min_per_order"],
+                        COMMISSION_CONFIG["option_per_contract"] * contracts)
+        return {"commission": round(commission, 2), "fees": 0, "total_cost": round(commission, 2)}
+    
+    # 正股佣金
+    trade_value = abs(quantity) * price
+    commission_by_share = COMMISSION_CONFIG["stock_per_share"] * abs(quantity)
+    commission_by_pct = trade_value * COMMISSION_CONFIG["stock_max_pct"]
+    commission = max(COMMISSION_CONFIG["stock_min_per_order"],
+                     min(commission_by_share, commission_by_pct))
+    
+    # 监管费（仅在卖出时收取，这里统一按卖出计算，买入时caller传0）
+    # 不在这里自动加监管费，由调用方决定是否卖出
+    
+    return {"commission": round(commission, 2), "fees": 0, "total_cost": round(commission, 2)}
+
+def calc_sell_fees(quantity, price):
+    """计算正股卖出的SEC/TAF监管费"""
+    trade_value = abs(quantity) * price
+    sec_fee = max(0.01, trade_value * COMMISSION_CONFIG["sec_fee_rate"])
+    taf_fee = max(COMMISSION_CONFIG["finra_taf_min"], 
+                 abs(quantity) * COMMISSION_CONFIG["taf_per_share"])
+    return round(sec_fee + taf_fee, 2)
+
+
 DEFAULT_STRATEGIES = [
     {"id": "dca", "name": "定投仓 (DCA)", "icon": "📊", "color": "#6366f1",
      "desc": "定期定额买入个股和大盘ETF"},
@@ -138,57 +190,101 @@ def save_target_allocation(targets):
 
 # ---- Price Fetcher (Twelve Data) ----
 
-def fetch_price_twelvedata(symbol, api_key):
-    """Fetch latest price via Twelve Data API."""
+def fetch_price_sina(symbol):
+    """Fetch latest US stock price via Sina Finance API (no key needed)."""
     try:
-        cmd = ['curl', '-s', '--max-time', '10',
-               f'https://api.twelvedata.com/price?symbol={symbol}&apikey={api_key}']
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.stdout:
-            d = json.loads(result.stdout)
-            p = d.get('price')
-            if p:
-                return float(p)
+        sym_lower = symbol.lower()
+        cmd = ['curl', '-s', '--max-time', '8',
+               f'https://hq.sinajs.cn/list=gb_{sym_lower}',
+               '-H', 'Referer: https://finance.sina.com.cn']
+        result = subprocess.run(cmd, capture_output=True)
+        if not result.stdout:
+            return None
+        text = result.stdout.decode('latin-1')
+        if '="' in text:
+            content = text.split('="')[1].rstrip('";\n')
+            fields = content.split(',')
+            if len(fields) > 1:
+                price = float(fields[1])
+                if price > 0:
+                    return price
     except:
         pass
     return None
 
 
-def refresh_all_prices(api_key):
-    """Refresh prices for all positions. Returns updated portfolio or error."""
+def fetch_price_batch_sina(symbols):
+    """Batch fetch US stock prices via Sina Finance API (single request)."""
+    try:
+        sym_list = ','.join(f'gb_{s.lower()}' for s in symbols)
+        cmd = ['curl', '-s', '--max-time', '10',
+               f'https://hq.sinajs.cn/list={sym_list}',
+               '-H', 'Referer: https://finance.sina.com.cn']
+        result = subprocess.run(cmd, capture_output=True)
+        if not result.stdout:
+            return {}
+        text = result.stdout.decode('latin-1')
+        prices = {}
+        for line in text.strip().split('\n'):
+            if '="' not in line:
+                continue
+            var_name = line.split('=')[0]
+            sym = var_name.replace('hq_str_gb_', '').upper()
+            content = line.split('="')[1].rstrip('";')
+            fields = content.split(',')
+            if len(fields) > 1:
+                try:
+                    price = float(fields[1])
+                    if price > 0:
+                        prices[sym] = price
+                except:
+                    pass
+        return prices
+    except:
+        return {}
+
+
+def refresh_all_prices(api_key=""):
+    """Refresh prices for all positions via Sina Finance (no API key needed)."""
     portfolio = load_portfolio()
     positions = portfolio.get("positions", [])
     if not positions:
         return portfolio
 
-    updated = 0
-    errors = []
     # Deduplicate symbols
+    symbols = []
     seen = set()
     for p in positions:
         sym = p.get("symbol", "").upper()
-        if sym in seen:
-            continue
-        seen.add(sym)
+        if sym and sym not in seen:
+            symbols.append(sym)
+            seen.add(sym)
 
-        price = fetch_price_twelvedata(sym, api_key)
+    # Batch fetch all symbols in one request
+    prices = fetch_price_batch_sina(symbols)
+
+    updated = 0
+    errors = []
+    for p in positions:
+        sym = p.get("symbol", "").upper()
+        price = prices.get(sym)
+        if price is None:
+            # Fallback: single fetch
+            price = fetch_price_sina(sym)
         if price is None:
             errors.append(sym)
             continue
 
-        # Update all positions with this symbol
-        for p in positions:
-            if p.get("symbol", "").upper() == sym:
-                if p["strategy"] in ("dca", "swing"):
-                    p["current_price"] = price
-                    qty = p.get("quantity", 0)
-                    avg = p.get("avg_price", 0)
-                    p["market_value"] = round(abs(qty) * price, 2)
-                    p["pnl"] = round((price - avg) * qty, 2)
-                    p["pnl_pct"] = round((price / avg - 1) * 100, 2) if avg else 0
-                elif p["strategy"] in ("wheel", "leaps"):
-                    p["stock_price"] = price
-                updated += 1
+        if p["strategy"] in ("dca", "swing"):
+            p["current_price"] = price
+            qty = p.get("quantity", 0)
+            avg = p.get("avg_price", 0)
+            p["market_value"] = round(abs(qty) * price, 2)
+            p["pnl"] = round((price - avg) * qty, 2)
+            p["pnl_pct"] = round((price / avg - 1) * 100, 2) if avg else 0
+        elif p["strategy"] in ("wheel", "leaps"):
+            p["stock_price"] = price
+        updated += 1
 
     save_portfolio(portfolio)
     return {"portfolio": portfolio, "updated": updated, "errors": errors}
@@ -290,12 +386,42 @@ def add_position():
                 p["market_value"] = round(abs(total_qty) * p["current_price"], 2)
                 p["pnl"] = round((p["current_price"] - p["avg_price"]) * total_qty, 2)
                 p["pnl_pct"] = round((p["current_price"] / p["avg_price"] - 1) * 100, 2) if p["avg_price"] else 0
+                # Swing: append to buy_trades for FIFO
+                if position["strategy"] == "swing":
+                    p.setdefault("buy_trades", []).append({
+                        "date": __import__("datetime").datetime.now().strftime("%Y-%m-%d"),
+                        "qty": new_qty,
+                        "price": new_avg,
+                    })
+                # 记录加仓到history
+                history = portfolio.setdefault("history", [])
+                history.append({
+                    "id": "hist_" + str(__import__("uuid").uuid4().hex[:8]),
+                    "date": __import__("datetime").datetime.now().strftime("%Y-%m-%d"),
+                    "symbol": position["symbol"],
+                    "action": "BUY",
+                    "quantity": new_qty,
+                    "price": new_avg,
+                    "cost_price": 0,
+                    "pnl": 0,
+                    "strategy": position["strategy"],
+                    "note": f"{position['strategy'].upper()}加仓 {new_qty}股 @{new_avg:.2f}",
+                    "commission": calc_commission(new_qty, new_avg)["total_cost"],
+                    "fees": 0,
+                })
                 merged = True
                 position = p
                 break
         if not merged:
             import uuid
             position["id"] = str(uuid.uuid4())[:8]
+            # Swing: initialize buy_trades
+            if position["strategy"] == "swing":
+                position["buy_trades"] = [{
+                    "date": __import__("datetime").datetime.now().strftime("%Y-%m-%d"),
+                    "qty": position["quantity"],
+                    "price": position["avg_price"],
+                }]
             portfolio["positions"].append(position)
     else:
         import uuid
@@ -582,6 +708,103 @@ def clear_history():
     portfolio["history"] = []
     save_portfolio(portfolio)
     return jsonify({"success": True})
+
+
+@app.route("/api/portfolio/position/<pos_id>/sell", methods=["POST"])
+def sell_position(pos_id):
+    """卖出持仓。DCA: 平均成本法; Swing: FIFO逐笔配对。"""
+    portfolio = load_portfolio()
+    data = request.get_json()
+    sell_qty = float(data.get("quantity", 0))
+    sell_price = float(data.get("price", 0))
+
+    if sell_qty <= 0 or sell_price <= 0:
+        return jsonify({"error": "无效数量或价格"}), 400
+
+    positions = portfolio.get("positions", [])
+    pos = next((p for p in positions if p.get("id") == pos_id), None)
+    if not pos:
+        return jsonify({"error": "持仓不存在"}), 404
+
+    if sell_qty > pos.get("quantity", 0):
+        return jsonify({"error": f"卖出数量超过持有量（{pos['quantity']}股）"}), 400
+
+    history = portfolio.get("history", [])
+    now_str = __import__("datetime").datetime.now().strftime("%Y-%m-%d")
+    symbol = pos.get("symbol", "")
+    strategy = pos.get("strategy", "")
+    total_pnl = 0
+
+    if strategy == "swing":
+        # === FIFO: 逐笔配对 ===
+        remaining_sell = sell_qty
+        for trade in pos.get("buy_trades", []):
+            if remaining_sell <= 0:
+                break
+            if trade.get("qty", 0) <= 0:
+                continue
+            match_qty = min(remaining_sell, trade["qty"])
+            trade_pnl = (sell_price - trade["price"]) * match_qty
+            total_pnl += trade_pnl
+            remaining_sell -= match_qty
+            trade["qty"] -= match_qty
+            # Record per-trade history
+            history.append({
+                "id": "hist_" + __import__("uuid").uuid4().hex[:8],
+                "date": now_str,
+                "symbol": symbol,
+                "action": "SELL",
+                "quantity": match_qty,
+                "price": sell_price,
+                "cost_price": trade["price"],
+                "pnl": round(trade_pnl, 2),
+                "note": f"Swing卖出 {match_qty}股（FIFO成本${trade['price']:.2f}）",
+                "strategy": "swing",
+                "commission": calc_commission(match_qty, sell_price)["total_cost"],
+                "fees": calc_sell_fees(match_qty, sell_price),
+            })
+        # Clean empty buy_trades
+        pos["buy_trades"] = [t for t in pos.get("buy_trades", []) if t.get("qty", 0) > 0]
+    else:
+        # === DCA: 平均成本法 ===
+        avg_cost = pos.get("avg_price", 0)
+        total_pnl = (sell_price - avg_cost) * sell_qty
+        history.append({
+            "id": "hist_" + __import__("uuid").uuid4().hex[:8],
+            "date": now_str,
+            "symbol": symbol,
+            "action": "SELL",
+            "quantity": sell_qty,
+            "price": sell_price,
+            "cost_price": avg_cost,
+            "pnl": round(total_pnl, 2),
+            "note": f"DCA卖出 {sell_qty}股（成本{avg_cost:.2f}）",
+            "strategy": "dca",
+            "commission": calc_commission(sell_qty, sell_price)["total_cost"],
+            "fees": calc_sell_fees(sell_qty, sell_price),
+        })
+
+    # Update position
+    remaining = pos["quantity"] - sell_qty
+    if remaining > 0:
+        pos["quantity"] = remaining
+        cp = pos.get("current_price", pos.get("avg_price", 0))
+        if strategy == "swing" and pos.get("buy_trades"):
+            # Recalc avg from remaining buy_trades
+            total_cost = sum(t["qty"] * t["price"] for t in pos["buy_trades"])
+            pos["avg_price"] = round(total_cost / remaining, 4) if remaining > 0 else 0
+        pos["market_value"] = round(remaining * cp, 2)
+        pos["pnl"] = round((cp - pos["avg_price"]) * remaining, 2)
+        pos["pnl_pct"] = round(((cp - pos["avg_price"]) / pos["avg_price"]) * 100, 2) if pos["avg_price"] > 0 else 0
+    else:
+        positions = [p for p in positions if p.get("id") != pos_id]
+        portfolio["positions"] = positions
+
+    # Cash += sell proceeds
+    portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) + sell_qty * sell_price, 2)
+    portfolio["history"] = history
+    save_portfolio(portfolio)
+    return jsonify({"success": True, "pnl": round(total_pnl, 2), "remaining": remaining, "portfolio": portfolio})
 
 
 if __name__ == "__main__":
