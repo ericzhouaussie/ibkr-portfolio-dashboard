@@ -128,6 +128,36 @@
 </div>
 
 <!-- Sell Modal -->
+<div class="modal-overlay" id="buy-modal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h3>📥 加仓</h3>
+      <button class="btn" onclick="closeModal('buy-modal')">✕ 取消</button>
+    </div>
+    <div style="padding:16px">
+      <div style="margin-bottom:12px;font-size:0.9rem;color:var(--text-dim)">
+        标的: <b id="buy-symbol"></b>
+      </div>
+      <form onsubmit="submitBuy(event)">
+        <input type="hidden" id="buy-pos-id">
+        <div class="form-group">
+          <label>买入数量（股）</label>
+          <input id="buy-qty" type="number" step="1" min="1" required style="width:100%">
+        </div>
+        <div class="form-group">
+          <label>买入价格（每股 $）</label>
+          <input id="buy-price" type="number" step="0.01" required style="width:100%">
+        </div>
+        <div id="buy-preview" style="margin:12px 0;font-size:0.85rem;color:var(--text-dim)"></div>
+        <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
+          <button type="button" class="btn" onclick="closeModal('buy-modal')">取消</button>
+          <button type="submit" class="btn btn-primary" style="border-color:var(--blue);color:var(--blue)">📥 确认加仓</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="sell-modal">
   <div class="modal" style="max-width:420px">
     <div class="modal-header">

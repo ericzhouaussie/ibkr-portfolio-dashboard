@@ -226,6 +226,7 @@ function renderStrategies() {
                     </div>
                     <div class="holding-pnl ${pctClass(p.pnl)}">${fmtNum(p.pnl)} (${fmtPct(p.pnl_pct)})</div>
                     <div class="holding-actions">
+                      <button class="btn btn-sm" style="border-color:var(--blue);color:var(--blue)" onclick="openBuyModal('${p.id}','${p.symbol}','${s.id}')">📥 加仓</button>
                       <button class="btn btn-sm" style="border-color:var(--green);color:var(--green)" onclick="openSellModal('${p.id}','${p.symbol}',${p.quantity},${p.avg_price})">📤 卖出</button>
                       <button class="btn btn-sm" onclick="editPosition('${p.id}','${s.id}')">✏️</button>
                       <button class="btn btn-sm btn-danger" onclick="deletePosition('${p.id}')">🗑️</button>
@@ -853,6 +854,65 @@ function deleteCashFlow(id) {
       }
     })
     .catch(() => showToast('❌ 删除失败', 'error'));
+}
+
+// === Buy More (加仓) ===
+function openBuyModal(posId, symbol, strategyId) {
+  const modal = document.getElementById('buy-modal');
+  modal.classList.add('active');
+  document.getElementById('buy-pos-id').value = posId;
+  document.getElementById('buy-symbol').textContent = symbol;
+  document.getElementById('buy-qty').value = '';
+  document.getElementById('buy-price').value = '';
+  document.getElementById('buy-preview').innerHTML = '';
+  document.getElementById('buy-qty').focus();
+
+  const updatePreview = () => {
+    const q = parseFloat(document.getElementById('buy-qty').value) || 0;
+    const p = parseFloat(document.getElementById('buy-price').value) || 0;
+    if (q > 0 && p > 0) {
+      const cost = q * p;
+      document.getElementById('buy-preview').innerHTML =
+        `<span style="color:var(--text-dim)">预估成本: $${cost.toFixed(2)}</span>`;
+    }
+  };
+  document.getElementById('buy-qty').oninput = updatePreview;
+  document.getElementById('buy-price').oninput = updatePreview;
+}
+
+function submitBuy(e) {
+  e.preventDefault();
+  const posId = document.getElementById('buy-pos-id').value;
+  const qty = parseFloat(document.getElementById('buy-qty').value);
+  const price = parseFloat(document.getElementById('buy-price').value);
+  if (!qty || qty <= 0) { showToast('❌ 请输入有效数量', 'error'); return; }
+  if (!price || price <= 0) { showToast('❌ 请输入有效价格', 'error'); return; }
+
+  // Find the position to get strategy info
+  const pos = portfolio.positions.find(p => p.id === posId);
+  if (!pos) { showToast('❌ 持仓不存在', 'error'); return; }
+
+  fetch('/api/portfolio/position', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      symbol: pos.symbol,
+      strategy: pos.strategy,
+      quantity: qty,
+      avg_price: price,
+      current_price: pos.current_price || price,
+    }),
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      portfolio = res.portfolio;
+      refreshAll();
+      closeModal('buy-modal');
+      showToast(`✅ 加仓成功: ${pos.symbol} +${qty}股 @ $${price.toFixed(2)}`);
+    } else { showToast('❌ ' + (res.error || '加仓失败'), 'error'); }
+  })
+  .catch(() => showToast('❌ 加仓失败', 'error'));
 }
 
 // === Sell Position (DCA + Swing FIFO) ===

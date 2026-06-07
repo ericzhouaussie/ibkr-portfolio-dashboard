@@ -219,18 +219,6 @@
       "pnl_pct": 10.0,
       "status": "等待行权",
       "delta": -0.21
-    },
-    {
-      "id": "872ffa27",
-      "symbol": "TEST",
-      "strategy": "dca",
-      "notes": "",
-      "quantity": 1.0,
-      "avg_price": 0.0,
-      "current_price": 0.0,
-      "market_value": 0.0,
-      "pnl": 0.0,
-      "pnl_pct": 0
     }
   ],
   "cash": 20000.0,
