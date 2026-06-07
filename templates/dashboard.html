@@ -18,7 +18,6 @@
     </div>
     <div class="header-actions">
 
-      <button class="btn" onclick="openModal('cash-modal')">💵 更新现金</button>
       <button class="btn" onclick="openModal('strategy-modal')">➕ 新增策略</button>
       <button class="btn" onclick="openModal('target-modal')">🎯 目标配比</button>
       <button class="btn" onclick="openModal('goal-modal')">🏆 挑战目标</button>
@@ -70,22 +69,6 @@
 
 <!-- Upload Modal -->
 <!-- Cash Modal -->
-<div class="modal-overlay" id="cash-modal">
-  <div class="modal">
-    <h3>💵 更新现金仓位</h3>
-    <form onsubmit="handleCashUpdate(event)">
-      <div class="form-group">
-        <label>现金金额 (USD)</label>
-        <input id="cash-input" type="number" step="0.01" placeholder="50000">
-      </div>
-      <div class="modal-actions">
-        <button type="button" class="btn" onclick="closeModal('cash-modal')">取消</button>
-        <button type="submit" class="btn btn-primary">保存</button>
-      </div>
-    </form>
-  </div>
-</div>
-
 <!-- New Strategy Modal -->
 <div class="modal-overlay" id="strategy-modal">
   <div class="modal">

@@ -442,21 +442,6 @@ function editPosition(posId, stratId) {
     });
 }
 
-// === Cash Update ===
-function handleCashUpdate(e) {
-  e.preventDefault();
-  const cash = parseFloat(document.getElementById('cash-input').value);
-  if (isNaN(cash)) return;
-  fetch('/api/portfolio/cash', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ cash }),
-  })
-    .then(r => r.json())
-    .then(res => {
-      if (res.success) { portfolio = res.portfolio; refreshAll(); closeModal('cash-modal'); showToast('✅ 现金已更新'); }
-    });
-}
 
 // === Strategy Creation ===
 function handleAddStrategy(e) {
@@ -1042,8 +1027,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Goal input
   document.getElementById('goal-input').value = localStorage.getItem('challenge_goal') || 1000000;
 
-  // Cash input
-  document.getElementById('cash-input').value = portfolio.cash || 0;
 
   // Load history from portfolio
   historyList = portfolio.history || [];
