@@ -22,6 +22,9 @@
       <button class="btn" onclick="openModal('strategy-modal')">➕ 新增策略</button>
       <button class="btn" onclick="openModal('target-modal')">🎯 目标配比</button>
       <button class="btn" onclick="openModal('goal-modal')">🏆 挑战目标</button>
+      <button class="btn btn-primary" onclick="refreshPrices()" id="refresh-btn">🔄 更新行情</button>
+      <button class="btn" onclick="openHistory()">📜 交易记录</button>
+      <button class="btn" onclick="openCashFlowModal()">💰 资金流水</button>
     </div>
   </div>
 
@@ -161,6 +164,111 @@
       <button type="button" class="btn" onclick="closeModal('goal-modal')">取消</button>
       <button class="btn btn-primary" onclick="updateGoal()">确定</button>
     </div>
+  </div>
+</div>
+
+<!-- Close Position Modal -->
+<div class="modal-overlay" id="close-modal">
+  <div class="modal">
+    <h3>🔒 平仓确认</h3>
+    <div style="margin-bottom:12px">
+      <span style="color:var(--text-dim)">标的:</span>
+      <b id="close-symbol"></b>
+    </div>
+    <form onsubmit="handleCloseClose(event)">
+      <div class="form-group">
+        <label>平仓价格 (每股期权价格)</label>
+        <input id="close-price" type="number" step="0.01" placeholder="例: 0.15" required>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="closeModal('close-modal')">取消</button>
+        <button type="submit" class="btn btn-danger">确认平仓</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- History Modal -->
+<div class="modal-overlay" id="history-modal" style="padding: 20px">
+  <div class="modal" style="max-width: 900px; max-height: 80vh; overflow-y: auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3>📜 期权交易历史记录</h3>
+      <div>
+        <button class="btn btn-sm" onclick="clearHistory()" style="margin-right:8px">🗑️ 清空</button>
+        <button class="btn" onclick="closeModal('history-modal')">✕ 关闭</button>
+      </div>
+    </div>
+    <div id="history-list">
+      <!-- JS渲染 -->
+    </div>
+  </div>
+</div>
+
+<!-- Cash Flow Modal -->
+<div class="modal-overlay" id="cashflow-modal" style="padding: 20px">
+  <div class="modal" style="max-width: 900px; max-height: 80vh; overflow-y: auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3>💰 资金流水</h3>
+      <button class="btn" onclick="closeModal('cashflow-modal')">✕ 关闭</button>
+    </div>
+    <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="openCashFlowForm('deposit')">⬇️ 入金</button>
+      <button class="btn btn-danger" onclick="openCashFlowForm('withdraw')">⬆️ 出金</button>
+    </div>
+    <div id="cashflow-form" style="display:none;margin-bottom:16px;padding:12px;background:var(--bg-primary);border-radius:8px">
+      <form onsubmit="handleCashFlow(event)">
+        <input type="hidden" id="cf-type">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+          <div class="form-group" style="margin-bottom:0">
+            <label>币种</label>
+            <select id="cf-currency" onchange="onCurrencyChange()" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg-primary);color:var(--text)">
+              <option value="CNY">🇨🇳 CNY 人民币</option>
+              <option value="USD">🇺🇸 USD 美元</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label id="cf-amount-label">人民币金额 (CNY)</label>
+            <input id="cf-amount" type="number" step="0.01" placeholder="50000" required style="width:150px">
+          </div>
+          <div class="form-group" style="margin-bottom:0" id="cf-rate-group">
+            <label>汇率 USD/CNY</label>
+            <input id="cf-rate" type="number" step="0.01" placeholder="7.25" value="7.25" style="width:120px">
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label>备注</label>
+            <input id="cf-note" type="text" placeholder="工资入金" style="width:180px">
+          </div>
+          <div style="font-size:0.8rem;color:var(--accent);margin-bottom:8px" id="cf-preview"></div>
+          <div style="display:flex;gap:8px">
+            <button type="submit" class="btn btn-primary" style="margin-bottom:8px">确认</button>
+            <button type="button" class="btn" onclick="closeCashFlowForm()" style="margin-bottom:8px">取消</button>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div id="cashflow-list"></div>
+    <div id="cashflow-summary" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:0.85rem;color:var(--text-dim)"></div>
+  </div>
+</div>
+
+<!-- API Key Modal -->
+<div class="modal-overlay" id="apikey-modal">
+  <div class="modal">
+    <h3>🔑 Twelve Data API Key</h3>
+    <p style="color:var(--text-dim);font-size:0.8rem;margin-bottom:12px">
+      免费注册：<a href="https://twelvedata.com/apikey" target="_blank" style="color:var(--accent)">twelvedata.com/apikey</a><br>
+      免费版每日800次调用，足够更新行情。
+    </p>
+    <form onsubmit="handleSaveApiKey(event)">
+      <div class="form-group">
+        <label>API Key</label>
+        <input id="apikey-input" type="text" placeholder="demo（默认有限额）">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="closeModal('apikey-modal')">取消</button>
+        <button type="submit" class="btn btn-primary">保存</button>
+      </div>
+    </form>
   </div>
 </div>
 

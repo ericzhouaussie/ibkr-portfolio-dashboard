@@ -3,6 +3,7 @@
 
 let portfolio = window.__PORTFOLIO__ || {strategies:[], positions:[], cash:0};
 let targetAlloc = window.__TARGETS__ || [];
+let historyList = [];  // 存储历史记录
 
 // === Helpers ===
 function fmtNum(n) {
@@ -19,6 +20,17 @@ function fmtPct(n) {
 }
 
 function pctClass(n) { return n >= 0 ? 'green' : 'red'; }
+
+function daysToExpiry(dateStr) {
+  if (!dateStr) return '-';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const exp = new Date(dateStr); exp.setHours(0,0,0,0);
+  const days = Math.ceil((exp - today) / (1000 * 60 * 60 * 24));
+  if (days < 0) return '<span style="color:#ff4757">已过期</span>';
+  if (days <= 7) return '<span style="color:#ff4757">剩余' + days + '天</span>';
+  if (days <= 30) return '<span style="color:#f59e0b">剩余' + days + '天</span>';
+  return '<span style="color:var(--text-dim)">剩余' + days + '天</span>';
+}
 
 function getStrategyById(id) {
   return (portfolio.strategies || []).find(s => s.id === id);
@@ -39,7 +51,7 @@ function getStrategyPnl(stratId) {
 }
 
 function getTotalValue() {
-  let v = portfolio.cash || 0;
+  let v = (portfolio.cash || 0) + (portfolio.cash_base_usd || 0);
   (portfolio.positions || []).forEach(p => v += p.market_value);
   return v;
 }
@@ -145,28 +157,79 @@ function renderStrategies() {
                 现金储备: <b style="color: var(--blue)">${fmtNum(portfolio.cash || 0)}</b>
               </div>
             ` : positions.length ? `
-              ${positions.map(p => `
-                <div class="holding-item" onclick="event.stopPropagation()">
-                  <div class="holding-symbol">${p.symbol}</div>
-                  <div class="holding-details">
-                    <span>${p.quantity > 0 ? '+' : ''}${p.quantity} 股</span>
-                    <span>@ $${p.avg_price.toFixed(2)}</span>
-                    <span>→ $${p.current_price.toFixed(2)}</span>
+              ${positions.map(p => {
+                // Wheel 策略 - 期权格式
+                if (p.strategy === 'wheel') {
+                  return `
+                    <div class="holding-item" onclick="event.stopPropagation()">
+                      <div class="holding-symbol">${p.symbol}</div>
+                      <div class="holding-details">
+                        <span class="holding-tag ${p.wheel_type}">${p.wheel_type === 'sell_put' ? 'Sell Put' : p.wheel_type === 'covered_call' ? 'Covered Call' : '持有正股'}</span>
+                        <span>K${p.strike} · ${p.expiry} · ${daysToExpiry(p.expiry)}</span>
+                        <span>${p.contracts}合约 (${p.contracts*100}股)</span>
+                        <span>Delta: ${p.delta || '-'}</span>
+                      </div>
+                      <div class="holding-value">
+                        <div>权利金: <span class="green">$${((p.premium || 0) * (p.contracts || 0) * 100).toFixed(2)}</span></div>
+                        <div>股价: $${(p.stock_price || 0).toFixed(2)}</div>
+                      </div>
+                      <div class="holding-pnl ${pctClass(p.pnl)}">${fmtNum(p.pnl)}</div>
+                      <div class="holding-actions">
+                        <button class="btn btn-sm btn-close" onclick="closePosition('${p.id}','${s.id}','${p.symbol}')">🔒 平仓</button>
+                        <button class="btn btn-sm" onclick="editPosition('${p.id}','${s.id}')">✏️</button>
+                        <button class="btn btn-sm btn-danger" onclick="deletePosition('${p.id}')">🗑️</button>
+                      </div>
+                    </div>
+                  `;
+                }
+                // LEAPS 策略 - 期权格式
+                if (p.strategy === 'leaps') {
+                  return `
+                    <div class="holding-item" onclick="event.stopPropagation()">
+                      <div class="holding-symbol">${p.symbol}</div>
+                      <div class="holding-details">
+                        <span class="holding-tag leaps">LEAPS Call</span>
+                        <span>K${p.strike} · ${p.expiry} · ${daysToExpiry(p.expiry)}</span>
+                        <span>${p.contracts}合约</span>
+                        <span>Delta: ${p.delta || '-'}</span>
+                      </div>
+                      <div class="holding-value">
+                        <div>成本: $${(p.buy_price || 0).toFixed(2)}/股</div>
+                        <div>现价: $${(p.current_option_price || 0).toFixed(2)}/股</div>
+                        <div>股价: $${(p.stock_price || 0).toFixed(2)}</div>
+                      </div>
+                      <div class="holding-pnl ${pctClass(p.pnl)}">${fmtNum(p.pnl)} (${fmtPct(p.pnl_pct)})</div>
+                      <div class="holding-actions">
+                        <button class="btn btn-sm btn-close" onclick="closePosition('${p.id}','${s.id}','${p.symbol}')">🔒 平仓</button>
+                        <button class="btn btn-sm" onclick="editPosition('${p.id}','${s.id}')">✏️</button>
+                        <button class="btn btn-sm btn-danger" onclick="deletePosition('${p.id}')">🗑️</button>
+                      </div>
+                    </div>
+                  `;
+                }
+                // 普通策略 (DCA, Swing) - 原始格式
+                return `
+                  <div class="holding-item" onclick="event.stopPropagation()">
+                    <div class="holding-symbol">${p.symbol}</div>
+                    <div class="holding-details">
+                      <span>${p.quantity > 0 ? '+' : ''}${p.quantity} 股</span>
+                      <span>@ $${p.avg_price.toFixed(2)}</span>
+                      <span>→ $${p.current_price.toFixed(2)}</span>
+                    </div>
+                    <div class="holding-value">
+                      <div>${fmtNum(p.market_value)}</div>
+                      <div class="holding-pct-tag">${getTotalValue() ? ((p.market_value / getTotalValue()) * 100).toFixed(1) : 0}%</div>
+                    </div>
+                    <div class="holding-pnl ${pctClass(p.pnl)}">${fmtNum(p.pnl)} (${fmtPct(p.pnl_pct)})</div>
+                    <div class="holding-actions">
+                      <button class="btn btn-sm" onclick="editPosition('${p.id}','${s.id}')">✏️</button>
+                      <button class="btn btn-sm btn-danger" onclick="deletePosition('${p.id}')">🗑️</button>
+                    </div>
                   </div>
-                  <div class="holding-value">${fmtNum(p.market_value)}</div>
-                  <div class="holding-pnl ${pctClass(p.pnl)}">${fmtNum(p.pnl)} (${fmtPct(p.pnl_pct)})</div>
-                  <div class="holding-actions">
-                    <button class="btn btn-sm" onclick="editPosition('${p.id}','${s.id}')">✏️</button>
-                    <button class="btn btn-sm btn-danger" onclick="deletePosition('${p.id}')">🗑️</button>
-                  </div>
-                </div>
-              `).join('')}
-              <div class="add-position-row" onclick="event.stopPropagation()">
-                <input class="input-sym" id="add-sym-${s.id}" placeholder="AAPL">
-                <input class="input-qty" id="add-qty-${s.id}" type="number" step="any" placeholder="数量">
-                <input class="input-price" id="add-price-${s.id}" type="number" step="any" placeholder="成本价">
-                <input class="input-curr" id="add-curr-${s.id}" type="number" step="any" placeholder="现价">
-                <button class="btn btn-sm btn-primary" onclick="addPositionToStrategy('${s.id}')">添加</button>
+                `;
+              }).join('')}
+              <div class="add-position-row" onclick="event.stopPropagation()" id="add-row-${s.id}">
+                ${renderAddPositionForm(s.id)}
               </div>
             ` : `
               <div class="strategy-empty">
@@ -196,13 +259,145 @@ function toggleStrategy(id) {
 }
 
 // === Position Actions ===
+function renderAddPositionForm(stratId) {
+  if (stratId === 'wheel') {
+    return `
+      <input class="input-sym" id="add-sym-${stratId}" placeholder="AMZN" style="width:70px">
+      <select id="add-wheel-type-${stratId}" style="padding:5px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.8rem">
+        <option value="sell_put">Sell Put</option>
+        <option value="covered_call">Covered Call</option>
+        <option value="holding_stock">持有正股</option>
+      </select>
+      <input class="input-strike" id="add-strike-${stratId}" type="number" step="any" placeholder="Strike" style="width:70px">
+      <input class="input-expiry" id="add-expiry-${stratId}" type="date" style="width:120px">
+      <input class="input-contracts" id="add-contracts-${stratId}" type="number" step="1" placeholder="合约" style="width:55px">
+      <input class="input-premium" id="add-premium-${stratId}" type="number" step="any" placeholder="权利金" style="width:65px">
+      <input class="input-delta" id="add-delta-${stratId}" type="number" step="0.01" placeholder="Delta" style="width:65px">
+      <input class="input-stock-price" id="add-stock-price-${stratId}" type="number" step="any" placeholder="股价" style="width:65px">
+      <button class="btn btn-sm btn-primary" onclick="addPositionToStrategy('${stratId}')">添加</button>
+    `;
+  }
+  if (stratId === 'leaps') {
+    return `
+      <input class="input-sym" id="add-sym-${stratId}" placeholder="NVDA" style="width:70px">
+      <input class="input-strike" id="add-strike-${stratId}" type="number" step="any" placeholder="Strike" style="width:70px">
+      <input class="input-expiry" id="add-expiry-${stratId}" type="date" style="width:120px">
+      <input class="input-contracts" id="add-contracts-${stratId}" type="number" step="1" placeholder="合约" style="width:55px">
+      <input class="input-buy-price" id="add-buy-price-${stratId}" type="number" step="any" placeholder="买入价" style="width:65px">
+      <input class="input-opt-price" id="add-opt-price-${stratId}" type="number" step="any" placeholder="现价" style="width:65px">
+      <input class="input-delta" id="add-delta-${stratId}" type="number" step="0.01" placeholder="Delta" style="width:65px">
+      <input class="input-stock-price" id="add-stock-price-${stratId}" type="number" step="any" placeholder="股价" style="width:65px">
+      <button class="btn btn-sm btn-primary" onclick="addPositionToStrategy('${stratId}')">添加</button>
+    `;
+  }
+  // 普通策略 (DCA, Swing)
+  return `
+    <input class="input-sym" id="add-sym-${stratId}" placeholder="AAPL" style="width:70px">
+    <input class="input-qty" id="add-qty-${stratId}" type="number" step="any" placeholder="数量" style="width:60px">
+    <input class="input-price" id="add-price-${stratId}" type="number" step="any" placeholder="成本价" style="width:75px">
+    <input class="input-curr" id="add-curr-${stratId}" type="number" step="any" placeholder="现价" style="width:75px">
+    <button class="btn btn-sm btn-primary" onclick="addPositionToStrategy('${stratId}')">添加</button>
+  `;
+}
+
 function addPositionToStrategy(stratId) {
   const sym = document.getElementById(`add-sym-${stratId}`).value.toUpperCase();
+  if (!sym) { showToast('请填写标的代码', 'error'); return; }
+
+  if (stratId === 'wheel') {
+    const wheelType = document.getElementById(`add-wheel-type-${stratId}`).value;
+    const strike = parseFloat(document.getElementById(`add-strike-${stratId}`).value);
+    const expiry = document.getElementById(`add-expiry-${stratId}`).value;
+    const contracts = parseInt(document.getElementById(`add-contracts-${stratId}`).value) || 1;
+    const premium = parseFloat(document.getElementById(`add-premium-${stratId}`).value) || 0;
+    const delta = parseFloat(document.getElementById(`add-delta-${stratId}`).value) || 0;
+    const stockPrice = parseFloat(document.getElementById(`add-stock-price-${stratId}`).value) || 0;
+    
+    if (!strike || !expiry) { showToast('请填写完整信息', 'error'); return; }
+    
+    const costBasis = wheelType === 'sell_put' ? strike - premium : stockPrice;
+    const quantity = contracts * 100;
+    const marketValue = quantity * stockPrice;
+    const pnl = premium * contracts * 100;
+    const pnlPct = premium > 0 ? (pnl / (strike * quantity)) * 100 : 0;
+    
+    fetch('/api/portfolio/position', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        symbol: sym,
+        strategy: stratId,
+        wheel_type: wheelType,
+        strike: strike,
+        expiry: expiry,
+        premium: premium,
+        contracts: contracts,
+        quantity: quantity,
+        stock_price: stockPrice,
+        cost_basis: costBasis,
+        current_option_price: 0,
+        market_value: marketValue,
+        pnl: pnl,
+        pnl_pct: pnlPct,
+        status: wheelType === 'sell_put' ? '等待行权' : '卖Covered Call',
+        delta: delta,
+      }),
+    })
+      .then(r => r.json())
+      .then(res => {
+        if (res.success) { portfolio = res.portfolio; refreshAll(); showToast('✅ 已添加 ' + sym); }
+      });
+    return;
+  }
+  
+  if (stratId === 'leaps') {
+    const strike = parseFloat(document.getElementById(`add-strike-${stratId}`).value);
+    const expiry = document.getElementById(`add-expiry-${stratId}`).value;
+    const contracts = parseInt(document.getElementById(`add-contracts-${stratId}`).value) || 1;
+    const buyPrice = parseFloat(document.getElementById(`add-buy-price-${stratId}`).value);
+    const optPrice = parseFloat(document.getElementById(`add-opt-price-${stratId}`).value) || buyPrice;
+    const delta = parseFloat(document.getElementById(`add-delta-${stratId}`).value) || 0;
+    const stockPrice = parseFloat(document.getElementById(`add-stock-price-${stratId}`).value) || 0;
+    
+    if (!strike || !expiry || isNaN(buyPrice)) { showToast('请填写完整信息', 'error'); return; }
+    
+    const quantity = contracts * 100;
+    const marketValue = contracts * 100 * optPrice;
+    const pnl = (optPrice - buyPrice) * contracts * 100;
+    const pnlPct = ((optPrice / buyPrice) - 1) * 100;
+    
+    fetch('/api/portfolio/position', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        symbol: sym,
+        strategy: stratId,
+        strike: strike,
+        expiry: expiry,
+        contracts: contracts,
+        quantity: quantity,
+        buy_price: buyPrice,
+        current_option_price: optPrice,
+        stock_price: stockPrice,
+        market_value: marketValue,
+        pnl: pnl,
+        pnl_pct: pnlPct,
+        delta: delta,
+      }),
+    })
+      .then(r => r.json())
+      .then(res => {
+        if (res.success) { portfolio = res.portfolio; refreshAll(); showToast('✅ 已添加 ' + sym); }
+      });
+    return;
+  }
+  
+  // 普通策略 (DCA, Swing)
   const qty = parseFloat(document.getElementById(`add-qty-${stratId}`).value);
   const avg = parseFloat(document.getElementById(`add-price-${stratId}`).value);
   const curr = parseFloat(document.getElementById(`add-curr-${stratId}`).value) || avg;
 
-  if (!sym || isNaN(qty) || isNaN(avg)) { showToast('请填写完整信息', 'error'); return; }
+  if (isNaN(qty) || isNaN(avg)) { showToast('请填写完整信息', 'error'); return; }
 
   fetch('/api/portfolio/position', {
     method: 'POST',
@@ -484,6 +679,344 @@ function updateGoal() {
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
+// === Price Refresh ===
+function refreshPrices() {
+  const btn = document.getElementById('refresh-btn');
+  btn.textContent = '⏳ 更新中...';
+  btn.disabled = true;
+  
+  const apiKey = localStorage.getItem('twelvedata_api_key') || 'demo';
+  
+  fetch('/api/refresh-prices', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ api_key: apiKey }),
+  })
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) {
+        portfolio = res.portfolio;
+        refreshAll();
+        const msg = res.errors && res.errors.length
+          ? `✅ 已更新 ${res.updated} 个标的，${res.errors.length} 个失败: ${res.errors.join(', ')}`
+          : `✅ 全部 ${res.updated} 个标的行情已更新`;
+        showToast(msg);
+      } else {
+        showToast('❌ 更新失败', 'error');
+      }
+    })
+    .catch(() => showToast('❌ 网络错误', 'error'))
+    .finally(() => {
+      btn.textContent = '🔄 更新行情';
+      btn.disabled = false;
+    });
+}
+
+function handleSaveApiKey(e) {
+  e.preventDefault();
+  const key = document.getElementById('apikey-input').value.trim() || 'demo';
+  localStorage.setItem('twelvedata_api_key', key);
+  closeModal('apikey-modal');
+  showToast('✅ API Key 已保存');
+}
+
+// === Cash Flow ===
+function openCashFlowModal() {
+  openModal('cashflow-modal');
+  document.getElementById('cashflow-form').style.display = 'none';
+  document.getElementById('cf-currency').value = 'CNY';
+  onCurrencyChange();
+  loadCashFlows();
+}
+
+function openCashFlowForm(type) {
+  const form = document.getElementById('cashflow-form');
+  form.style.display = 'block';
+  document.getElementById('cf-type').value = type;
+  document.getElementById('cf-currency').value = 'CNY';
+  document.getElementById('cf-amount').value = '';
+  document.getElementById('cf-rate').value = '7.25';
+  document.getElementById('cf-note').value = '';
+  onCurrencyChange();
+  updateCfPreview();
+  document.getElementById('cf-amount').focus();
+}
+
+function closeCashFlowForm() {
+  document.getElementById('cashflow-form').style.display = 'none';
+}
+
+function onCurrencyChange() {
+  const currency = document.getElementById('cf-currency').value;
+  const rateGroup = document.getElementById('cf-rate-group');
+  const amountLabel = document.getElementById('cf-amount-label');
+  if (currency === 'CNY') {
+    rateGroup.style.display = 'block';
+    amountLabel.textContent = '人民币金额 (CNY) ¥';
+  } else {
+    rateGroup.style.display = 'none';
+    amountLabel.textContent = '美元金额 (USD) $';
+  }
+  updateCfPreview();
+}
+
+function updateCfPreview() {
+  const currency = document.getElementById('cf-currency').value;
+  const amount = parseFloat(document.getElementById('cf-amount').value) || 0;
+  const rate = parseFloat(document.getElementById('cf-rate').value) || 7.25;
+  const type = document.getElementById('cf-type').value;
+  const label = type === 'deposit' ? '入金' : '出金';
+  let preview = '';
+  if (amount > 0) {
+    if (currency === 'CNY') {
+      const usd = (amount / rate).toFixed(2);
+      preview = `${label}: ¥${amount.toLocaleString()} ÷ ${rate} = $${usd} USD`;
+    } else {
+      preview = `${label}: $${amount.toLocaleString()} USD`;
+    }
+  }
+  document.getElementById('cf-preview').textContent = preview;
+}
+
+// 实时预览
+['cf-cny','cf-rate'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', updateCfPreview);
+});
+
+function handleCashFlow(e) {
+  e.preventDefault();
+  const type = document.getElementById('cf-type').value;
+  const currency = document.getElementById('cf-currency').value;
+  const amount = parseFloat(document.getElementById('cf-amount').value);
+  const rate = currency === 'CNY' ? parseFloat(document.getElementById('cf-rate').value) : null;
+  const note = document.getElementById('cf-note').value.trim();
+  if (!amount || amount <= 0) { showToast('❌ 金额必须大于0', 'error'); return; }
+  if (currency === 'CNY' && (!rate || rate <= 0)) { showToast('❌ 汇率必须大于0', 'error'); return; }
+  fetch('/api/cash-flow', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({type, currency, amount, rate, note})
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      portfolio.cash_base_usd = res.cash_base_usd;
+      closeCashFlowForm();
+      loadCashFlows();
+      refreshAll();
+      const label = type==='deposit'?'入金':'出金';
+      showToast(`✅ ${label}成功，当前现金基础: $${res.cash_base_usd.toLocaleString()}`);
+    } else {
+      showToast('❌ ' + (res.error || '操作失败'), 'error');
+    }
+  })
+  .catch(() => showToast('❌ 网络错误', 'error'));
+}
+
+function loadCashFlows() {
+  fetch('/api/cash-flow')
+    .then(r => r.json())
+    .then(data => {
+      const flows = data.flows || [];
+      const cashBase = data.cash_base_usd || 0;
+      const list = document.getElementById('cashflow-list');
+      const summary = document.getElementById('cashflow-summary');
+      if (!flows.length) {
+        list.innerHTML = '<div style="color:var(--text-dim);padding:20px;text-align:center">暂无资金流水，点击上方按钮添加</div>';
+        summary.innerHTML = `当前现金基础: <b>$${cashBase.toLocaleString()}</b>`;
+        return;
+      }
+      let depositTotal = 0, withdrawTotal = 0;
+      const rows = flows.slice().reverse().map(f => {
+        const isDeposit = f.type === 'deposit';
+        if (isDeposit) depositTotal += f.amount_usd; else withdrawTotal += f.amount_usd;
+        const typeLabel = isDeposit ? '⬇️ 入金' : '⬆️ 出金';
+        const currency = f.currency || 'CNY';
+        let amountDisplay, rateDisplay;
+        if (currency === 'CNY') {
+          const cny = f.original_amount || f.amount_cny || 0;
+          amountDisplay = '¥' + cny.toLocaleString();
+          rateDisplay = f.rate ? f.rate.toFixed(4) : '-';
+        } else {
+          amountDisplay = '$' + (f.original_amount || f.amount_usd || 0).toLocaleString();
+          rateDisplay = '-';
+        }
+        const usdFmt = '$' + (f.amount_usd || 0).toFixed(2);
+        return `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid var(--border);font-size:0.85rem">
+            <div style="min-width:90px">${typeLabel}</div>
+            <div style="min-width:110px;font-weight:600">${amountDisplay}</div>
+            <div style="min-width:70px;color:var(--text-dim)">${rateDisplay}</div>
+            <div style="min-width:90px;color:var(--accent)">${usdFmt}</div>
+            <div style="flex:1;color:var(--text-dim);margin:0 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.note || ''}</div>
+            <div style="min-width:130px;color:var(--text-dim);font-size:0.75rem">${f.created_at || ''}</div>
+            <button class="btn btn-sm btn-danger" onclick="deleteCashFlow('${f.id}')" style="margin-left:8px">🗑️</button>
+          </div>
+        `;
+      }).join('');
+      list.innerHTML = `
+        <div style="display:flex;font-size:0.75rem;color:var(--text-dim);padding:6px 10px;border-bottom:2px solid var(--border)">
+          <div style="min-width:90px">类型</div>
+          <div style="min-width:110px">金额</div>
+          <div style="min-width:70px">汇率</div>
+          <div style="min-width:90px">美元</div>
+          <div style="flex:1;margin:0 8px">备注</div>
+          <div style="min-width:130px">时间</div>
+          <div style="min-width:40px"></div>
+        </div>
+        ${rows}
+      `;
+      summary.innerHTML = `
+        累计入金: <b style="color:var(--green)">$${depositTotal.toLocaleString()}</b> 
+        累计出金: <b style="color:var(--red)">$${withdrawTotal.toLocaleString()}</b> 
+        当前现金基础: <b>$${cashBase.toLocaleString()}</b>
+      `;
+    })
+    .catch(() => showToast('❌ 加载失败', 'error'));
+}
+
+function deleteCashFlow(id) {
+  if (!confirm('确认删除该笔资金流水？')) return;
+  fetch('/api/cash-flow/' + id, {method: 'DELETE'})
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) {
+        portfolio.cash_base_usd = res.cash_base_usd;
+        loadCashFlows();
+        refreshAll();
+        showToast('✅ 已删除');
+      }
+    })
+    .catch(() => showToast('❌ 删除失败', 'error'));
+}
+
+// === Close Position (平仓) ===
+function closePosition(posId, stratId, symbol) {
+  const modal = document.getElementById('close-modal');
+  modal.classList.add('active');
+  modal.dataset.posId = posId;
+  modal.dataset.stratId = stratId;
+  document.getElementById('close-symbol').textContent = symbol;
+  document.getElementById('close-price').value = '';
+  document.getElementById('close-price').focus();
+}
+
+function handleCloseClose(e) {
+  e.preventDefault();
+  const posId = document.getElementById('close-modal').dataset.posId;
+  const closePrice = parseFloat(document.getElementById('close-price').value);
+  
+  if (isNaN(closePrice) || closePrice <= 0) {
+    showToast('请输入有效的平仓价格', 'error');
+    return;
+  }
+  
+  fetch(`/api/portfolio/position/${posId}/close`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ close_price: closePrice }),
+  })
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) {
+        portfolio = res.portfolio;
+        historyList = res.portfolio.history || [];
+        refreshAll();
+        closeModal('close-modal');
+        showToast(`✅ ${res.history.symbol} 已平仓，盈亏 ${res.history.pnl > 0 ? '+' : ''}$${res.history.pnl.toFixed(2)}`);
+      } else {
+        showToast('❌ ' + (res.error || '平仓失败'), 'error');
+      }
+    })
+    .catch(err => {
+      showToast('❌ 网络错误', 'error');
+    });
+}
+
+// === History (交易历史) ===
+function openHistory() {
+  openModal('history-modal');
+  renderHistory();
+}
+
+function renderHistory() {
+  const container = document.getElementById('history-list');
+  if (!container) return;
+  
+  // 从portfolio中加载历史记录
+  const history = portfolio.history || historyList || [];
+  
+  if (!history.length) {
+    container.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:40px">暂无平仓记录</p>';
+    return;
+  }
+  
+  let html = '<table class="history-table"><thead><tr>';
+  html += '<th>标的</th><th>策略</th><th>类型</th><th>Strike</th><th>到期日</th><th>合约</th>';
+  html += '<th>开仓价</th><th>平仓价</th><th>Delta</th><th>平仓日期</th><th>盈亏</th><th>盈亏%</th>';
+  html += '</tr></thead><tbody>';
+  
+  // 按close_date倒序
+  const sorted = [...history].sort((a, b) => (b.close_date || '').localeCompare(a.close_date || ''));
+  
+  sorted.forEach(h => {
+    const type = h.strategy === 'wheel' 
+      ? (h.wheel_type === 'sell_put' ? 'Sell Put' : h.wheel_type === 'covered_call' ? 'Covered Call' : '-') 
+      : 'LEAPS Call';
+    const openPrice = h.strategy === 'wheel' ? (h.open_premium || 0) : (h.open_price || 0);
+    
+    html += `<tr>
+      <td><b>${h.symbol}</b></td>
+      <td>${h.strategy === 'wheel' ? '🎡 Wheel' : '🚀 LEAPS'}</td>
+      <td><span class="holding-tag ${h.strategy === 'wheel' ? (h.wheel_type || '') : 'leaps'}">${type}</span></td>
+      <td>K${h.strike}</td>
+      <td>${h.expiry}</td>
+      <td>${h.contracts}</td>
+      <td>$${openPrice.toFixed(2)}</td>
+      <td>$${(h.close_price || 0).toFixed(2)}</td>
+      <td>${h.open_delta || '-'}</td>
+      <td>${h.close_date || '-'}</td>
+      <td class="${h.pnl >= 0 ? 'green' : 'red'}">$${h.pnl.toFixed(2)}</td>
+      <td class="${h.pnl >= 0 ? 'green' : 'red'}">${h.pnl >= 0 ? '+' : ''}${h.pnl_pct.toFixed(2)}%</td>
+    </tr>`;
+  });
+  
+  html += '</tbody></table>';
+  
+  // 汇总统计
+  const totalPnl = history.reduce((s, h) => s + (h.pnl || 0), 0);
+  const winCount = history.filter(h => (h.pnl || 0) > 0).length;
+  const lossCount = history.filter(h => (h.pnl || 0) < 0).length;
+  const winRate = history.length ? (winCount / history.length * 100).toFixed(1) : 0;
+  
+  html += `<div class="history-summary">
+    <div class="stat-card"><div class="label">总盈亏</div><div class="value ${totalPnl >= 0 ? 'green' : 'red'}">${fmtNum(totalPnl)}</div></div>
+    <div class="stat-card"><div class="label">交易次数</div><div class="value">${history.length}</div></div>
+    <div class="stat-card"><div class="label">胜率</div><div class="value">${winRate}%</div><div class="sub">${winCount}胜 ${lossCount}负</div></div>
+  </div>`;
+  
+  container.innerHTML = html;
+}
+
+function clearHistory() {
+  if (!confirm('确认清空所有历史记录？')) return;
+  
+  fetch('/api/history', { method: 'DELETE' })
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) {
+        portfolio.history = [];
+        historyList = [];
+        renderHistory();
+        showToast('✅ 历史记录已清空');
+      }
+    })
+    .catch(err => {
+      showToast('❌ 清空失败', 'error');
+    });
+}
+
 // === Toast ===
 function showToast(msg, type = 'success') {
   const t = document.createElement('div');
@@ -501,6 +1034,12 @@ function refreshAll() {
   renderStrategyPieChart();
   renderStrategyPnlChart();
   renderTargetComparison();
+  
+  // 更新历史记录（如果历史modal是打开的）
+  const historyModal = document.getElementById('history-modal');
+  if (historyModal && historyModal.classList.contains('active')) {
+    renderHistory();
+  }
 }
 
 // === Init ===
@@ -525,6 +1064,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Cash input
   document.getElementById('cash-input').value = portfolio.cash || 0;
+
+  // Load history from portfolio
+  historyList = portfolio.history || [];
 
   // Target rows
   if (targetAlloc.length) {
