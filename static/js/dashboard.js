@@ -280,7 +280,9 @@ function handleAddStrategy(e) {
 
 // === Charts ===
 function renderStrategyPieChart() {
-  const chart = echarts.init(document.getElementById('chart-strategy-pie'));
+  const el = document.getElementById('chart-strategy-pie');
+  if (!el || typeof echarts === 'undefined') return;
+  const chart = echarts.init(el);
   const total = getTotalValue();
   const strategies = portfolio.strategies || [];
 
@@ -311,7 +313,9 @@ function renderStrategyPieChart() {
 }
 
 function renderStrategyPnlChart() {
-  const chart = echarts.init(document.getElementById('chart-strategy-pnl'));
+  const el = document.getElementById('chart-strategy-pnl');
+  if (!el || typeof echarts === 'undefined') return;
+  const chart = echarts.init(el);
   const strategies = portfolio.strategies || [];
 
   const data = strategies

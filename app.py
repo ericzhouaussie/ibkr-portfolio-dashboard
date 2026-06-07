@@ -34,14 +34,29 @@ DEFAULT_STRATEGIES = [
 
 # ---- Data Layer ----
 
+DEFAULT_PORTFOLIO = {
+    "strategies": DEFAULT_STRATEGIES,
+    "positions": [
+        {"id":"p1","symbol":"AAPL","strategy":"dca","quantity":150,"avg_price":175.5,"current_price":195.2,"market_value":29280,"pnl":2955,"pnl_pct":11.22,"notes":""},
+        {"id":"p2","symbol":"MSFT","strategy":"dca","quantity":80,"avg_price":410,"current_price":445.6,"market_value":35648,"pnl":2848,"pnl_pct":8.68,"notes":""},
+        {"id":"p3","symbol":"QQQ","strategy":"dca","quantity":50,"avg_price":460,"current_price":498.3,"market_value":24915,"pnl":1915,"pnl_pct":8.33,"notes":"大盘ETF"},
+        {"id":"p4","symbol":"VOO","strategy":"dca","quantity":30,"avg_price":520,"current_price":555.8,"market_value":16674,"pnl":1074,"pnl_pct":6.88,"notes":"S&P500 ETF"},
+        {"id":"p5","symbol":"AMZN","strategy":"wheel","quantity":60,"avg_price":185,"current_price":212.4,"market_value":12744,"pnl":1644,"pnl_pct":14.81,"notes":"Sell Put接盘"},
+        {"id":"p6","symbol":"GOOGL","strategy":"wheel","quantity":40,"avg_price":155.2,"current_price":178.6,"market_value":7144,"pnl":936,"pnl_pct":15.08,"notes":""},
+        {"id":"p7","symbol":"NVDA","strategy":"leaps","quantity":20,"avg_price":880,"current_price":1050.3,"market_value":21006,"pnl":3406,"pnl_pct":19.35,"notes":"2028 LEAPS Call"},
+        {"id":"p8","symbol":"META","strategy":"leaps","quantity":25,"avg_price":480,"current_price":565.8,"market_value":14145,"pnl":2145,"pnl_pct":17.88,"notes":"2027 LEAPS Call"},
+        {"id":"p9","symbol":"TSLA","strategy":"swing","quantity":15,"avg_price":245,"current_price":268.4,"market_value":4026,"pnl":351,"pnl_pct":9.55,"notes":"短线持有"},
+        {"id":"p10","symbol":"AMD","strategy":"swing","quantity":30,"avg_price":155,"current_price":168.2,"market_value":5046,"pnl":396,"pnl_pct":8.52,"notes":""},
+    ],
+    "cash": 35000,
+}
+
 def load_portfolio():
     if PORTFOLIO_FILE.exists():
         return json.loads(PORTFOLIO_FILE.read_text(encoding="utf-8"))
-    return {
-        "strategies": DEFAULT_STRATEGIES,
-        "positions": [],
-        "cash": 0,
-    }
+    # First run: seed with default data
+    save_portfolio(DEFAULT_PORTFOLIO)
+    return DEFAULT_PORTFOLIO
 
 def save_portfolio(data):
     DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -201,4 +216,6 @@ def set_targets():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5050, host="0.0.0.0")
+    import os
+    port = int(os.environ.get("PORT", 5050))
+    app.run(debug=True, port=port, host="0.0.0.0")
