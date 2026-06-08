@@ -164,25 +164,6 @@
       ]
     },
     {
-      "id": "3dc0af1b",
-      "symbol": "META",
-      "strategy": "wheel",
-      "notes": "",
-      "wheel_type": "sell_put",
-      "strike": 200.0,
-      "expiry": "2026-01-30",
-      "premium": 100.0,
-      "contracts": 1,
-      "quantity": 100,
-      "stock_price": 593.0,
-      "cost_basis": 100.0,
-      "current_option_price": 10.0,
-      "market_value": 1000.0,
-      "pnl": 9000.0,
-      "pnl_pct": 90.0,
-      "delta": -0.21
-    },
-    {
       "id": "42aa0f66",
       "symbol": "META",
       "strategy": "wheel",
@@ -375,6 +356,27 @@
       "note": "SWING加仓 100.0股 @400.00",
       "commission": 0.35,
       "fees": 0
+    },
+    {
+      "id": "h_66858a2d",
+      "symbol": "META",
+      "strategy": "wheel",
+      "wheel_type": "sell_put",
+      "strike": 200.0,
+      "expiry": "2026-01-30",
+      "contracts": 1,
+      "open_premium": 100.0,
+      "close_price": 0.1,
+      "open_delta": -0.21,
+      "open_date": "",
+      "close_date": "2026-06-08",
+      "pnl": 9990.0,
+      "pnl_pct": 99900.0,
+      "commission": 0.65,
+      "fees": 0,
+      "total_cost": 0.65,
+      "status": "已平仓",
+      "notes": ""
     }
   ],
   "cash_flows": [
@@ -438,7 +440,7 @@
       "note": "SWING买入115.0股"
     }
   ],
-  "cash_base_usd": 65523.56,
+  "cash_base_usd": 65612.91,
   "transactions": [
     {
       "date": "2026-06-05",
