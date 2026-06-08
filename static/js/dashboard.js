@@ -1262,6 +1262,21 @@ function showToast(msg, type = 'success') {
   setTimeout(() => t.remove(), 2500);
 }
 
+// === Backup Download ===
+function downloadBackup() {
+  const btn = document.querySelector('.btn-export');
+  if (btn) { btn.textContent = '⏳ 打包中…'; btn.disabled = true; }
+  const link = document.createElement('a');
+  link.href = '/api/backup';
+  link.download = '';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => {
+    if (btn) { btn.textContent = '💾 备份数据'; btn.disabled = false; }
+  }, 2000);
+}
+
 // === Refresh All ===
 function refreshAll() {
   renderStats();

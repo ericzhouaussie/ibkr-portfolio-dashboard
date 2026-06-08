@@ -836,6 +836,51 @@ def sell_position(pos_id):
     return jsonify({"success": True, "pnl": round(total_pnl, 2), "remaining": remaining, "portfolio": portfolio})
 
 
+@app.route("/api/backup")
+def backup_data():
+    """打包下载所有本地数据文件，防止数据丢失"""
+    import zipfile, io, os
+    from flask import send_file
+
+    portfolio = load_portfolio()
+    target = load_target_allocation()
+
+    # 包含所有子目录
+    files = {
+        "portfolio.json": json.dumps(portfolio, indent=2, ensure_ascii=False),
+        "target_allocation.json": json.dumps(target, indent=2, ensure_ascii=False),
+    }
+
+    memory_lines = []
+    memory_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "memory")
+    if os.path.isdir(memory_dir):
+        for f in os.listdir(memory_dir):
+            if f.endswith(".md"):
+                fp = os.path.join(memory_dir, f)
+                memory_lines.append((f, open(fp, encoding="utf-8").read()))
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        for fname, content in files.items():
+            zf.writestr(fname, content)
+        if memory_lines:
+            zf.writestr("memory/README.txt",
+                "此文件夹保存的是 memory/*.md 备份，请放回 memory/ 目录恢复。")
+            for fname, content in memory_lines:
+                zf.writestr(f"memory/{fname}", content)
+
+    zip_buffer.seek(0)
+    from datetime import datetime
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"ibkr_backup_{ts}.zip"
+    return send_file(
+        zip_buffer,
+        mimetype="application/zip",
+        as_attachment=True,
+        download_name=filename
+    )
+
+
 if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 5050))

@@ -76,6 +76,8 @@ body {
 .btn:hover { border-color: var(--accent); background: var(--card-hover); }
 .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .btn-primary:hover { background: #6b4ce6; }
+.btn-export { background: #2d7a4f; border-color: #2d7a4f; color: #fff; }
+.btn-export:hover { background: #1f5f38; }
 .btn-sm { padding: 4px 10px; font-size: 0.75rem; }
 .btn-danger { color: var(--red); }
 .btn-danger:hover { background: var(--red-dim); border-color: var(--red); }
