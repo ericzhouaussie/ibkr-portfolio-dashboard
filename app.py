@@ -311,8 +311,54 @@ def refresh_all_prices(api_key=""):
             p["market_value"] = round(abs(qty) * price, 2)
             p["pnl"] = round((price - avg) * qty, 2)
             p["pnl_pct"] = round((price / avg - 1) * 100, 2) if avg else 0
-        elif p["strategy"] in ("wheel", "leaps"):
+        elif p["strategy"] == "wheel":
             p["stock_price"] = price
+            contracts = p.get("contracts", 1)
+            strike = p.get("strike", 0)
+            premium = p.get("premium", 0)
+            wt = p.get("wheel_type", "sell_put")
+            if wt == "sell_put":
+                # 盈亏 = 已收权利金 + (股价 - strike) * 合约价值
+                # 股价>strike时买方可能行权，你的put被行权=以strike买入正股
+                intrinsic = max(0, (price - strike) * contracts * 100)
+                premium_income = premium * contracts * 100
+                p["pnl"] = round(premium_income + intrinsic, 2)
+                # 成本基础=权利金收入-(股价-strike)部分（即已实现的put盈亏）
+                effective_cost = strike * contracts * 100 - premium_income
+                p["market_value"] = round(price * contracts * 100, 2)
+                cost_for_pct = effective_cost if effective_cost > 0 else premium_income
+                p["pnl_pct"] = round((p["pnl"] / cost_for_pct) * 100, 2) if cost_for_pct else 0
+            elif wt == "covered_call":
+                # 盈亏 = 权利金 + (min(股价,strike) - 成本价) * 股数
+                premium_income = premium * contracts * 100
+                shares = contracts * 100
+                stock_pnl = (min(price, strike) - p.get("cost_basis", strike)) * shares
+                p["pnl"] = round(premium_income + stock_pnl, 2)
+                p["market_value"] = round(min(price, strike) * shares, 2)
+                cost_total = p.get("cost_basis", strike) * shares
+                p["pnl_pct"] = round((p["pnl"] / cost_total) * 100, 2) if cost_total else 0
+            else:
+                # 持有正股模式
+                shares = p.get("quantity", contracts * 100)
+                cost_basis = p.get("cost_basis", 0)
+                p["market_value"] = round(price * shares, 2)
+                p["pnl"] = round((price - cost_basis) * shares, 2) if cost_basis else 0
+                p["pnl_pct"] = round(((price / cost_basis) - 1) * 100, 2) if cost_basis else 0
+        elif p["strategy"] == "leaps":
+            p["stock_price"] = price
+            strike = p.get("strike", 0)
+            buy_price = p.get("buy_price", 0)
+            contracts = p.get("contracts", 1)
+            if strike > 0 and buy_price > 0:
+                # 期权内在价值估算: max(0, 股价-strike) * 100 * contracts
+                intrinsic = max(0, price - strike) * 100 * contracts
+                total_cost = buy_price * 100 * contracts
+                # 用内在价值作为期权现价估算
+                estimated_opt_price = max(0, price - strike)
+                p["current_option_price"] = round(estimated_opt_price, 2)
+                p["market_value"] = round(intrinsic, 2)
+                p["pnl"] = round(intrinsic - total_cost, 2)
+                p["pnl_pct"] = round(((estimated_opt_price / buy_price) - 1) * 100, 2) if buy_price else 0
         updated += 1
 
     save_portfolio(portfolio)
