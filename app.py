@@ -507,6 +507,60 @@ def add_position():
         position["id"] = str(uuid.uuid4())[:8]
         portfolio["positions"].append(position)
 
+    # === 开仓时更新现金 ===
+    from datetime import datetime
+    now_str = datetime.now().strftime("%Y-%m-%d")
+
+    if position["strategy"] == "wheel":
+        # 卖Put收权利金：cash += premium * contracts * 100
+        premium = position.get("premium", 0)
+        contracts = position.get("contracts", 0)
+        if premium > 0 and contracts > 0:
+            cash_change = premium * contracts * 100
+            portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) + cash_change, 2)
+            portfolio.setdefault("cash_flows", []).append({
+                "id": generate_id("cf_"),
+                "date": now_str,
+                "type": "in",
+                "amount_usd": cash_change,
+                "symbol": position["symbol"],
+                "note": f"Wheel开仓收取权利金",
+            })
+    elif position["strategy"] == "leaps":
+        # 买LEAPS付钱：cash -= buy_price * contracts * 100 + 佣金
+        buy_price = position.get("buy_price", 0)
+        contracts = position.get("contracts", 0)
+        if buy_price > 0 and contracts > 0:
+            cost = buy_price * contracts * 100
+            comm = calc_commission(0, buy_price, is_option=True, contracts=contracts)
+            net_cost = cost + comm["total_cost"]
+            portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) - net_cost, 2)
+            portfolio.setdefault("cash_flows", []).append({
+                "id": generate_id("cf_"),
+                "date": now_str,
+                "type": "out",
+                "amount_usd": -net_cost,
+                "symbol": position["symbol"],
+                "note": f"LEAPS开仓买入期权",
+            })
+    elif position["strategy"] in ("dca", "swing"):
+        # 买入股票/ETF付钱
+        qty = position.get("quantity", 0)
+        price = position.get("avg_price", 0) or position.get("current_price", 0)
+        if qty > 0 and price > 0:
+            cost = qty * price
+            comm = calc_commission(qty, price)
+            net_cost = cost + comm["total_cost"]
+            portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) - net_cost, 2)
+            portfolio.setdefault("cash_flows", []).append({
+                "id": generate_id("cf_"),
+                "date": now_str,
+                "type": "out",
+                "amount_usd": -net_cost,
+                "symbol": position["symbol"],
+                "note": f"{position['strategy'].upper()}买入{qty}股",
+            })
+
     save_portfolio(portfolio)
     return jsonify({"success": True, "position": position, "portfolio": portfolio})
 
@@ -829,10 +883,17 @@ def close_position(pos_id):
     history.append(record)
     portfolio["history"] = history
     
-    # 更新现金（LEAPS平仓收入现金）
-    if position["strategy"] == "leaps":
-        portfolio["cash"] = portfolio.get("cash", 0) + close_price * position["contracts"] * 100
-    # Wheel策略：已收premium已计入，平仓买入期权支出暂不自动调整cash，让用户手动管理
+    # 更新现金（扣除佣金）
+    if position["strategy"] == "wheel":
+        # 平仓买回期权：付钱（权利金收入 - 平仓收益 - 佣金）
+        # 实际上：收到的权利金 - (买回成本 + 佣金) = 净盈亏
+        # 但为简化，记录净盈亏到 cash_base_usd
+        net_cash = open_premium - close_price * contracts * 100 - comm["total_cost"]
+        portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) + net_cash, 2)
+    elif position["strategy"] == "leaps":
+        # 平仓卖出期权：收钱 - 佣金
+        net_cash = close_price * contracts * 100 - comm["total_cost"]
+        portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) + net_cash, 2)
     
     save_portfolio(portfolio)
     return jsonify({"success": True, "history": record, "portfolio": portfolio})
@@ -944,8 +1005,10 @@ def sell_position(pos_id):
         positions = [p for p in positions if p.get("id") != pos_id]
         portfolio["positions"] = positions
 
-    # Cash += sell proceeds
-    portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) + sell_qty * sell_price, 2)
+    # Cash += sell proceeds - 佣金
+    comm = calc_commission(sell_qty, sell_price)
+    net_proceeds = sell_qty * sell_price - comm["total_cost"]
+    portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) + net_proceeds, 2)
     portfolio["history"] = history
     save_portfolio(portfolio)
     return jsonify({"success": True, "pnl": round(total_pnl, 2), "remaining": remaining, "portfolio": portfolio})
