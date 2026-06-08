@@ -170,15 +170,17 @@ function renderStrategies() {
                     <div class="holding-item" onclick="event.stopPropagation()">
                       <div class="holding-symbol">${p.symbol}</div>
                       <div class="holding-details">
-                        <span class="holding-tag ${p.wheel_type}">${p.wheel_type === 'sell_put' ? 'Sell Put' : p.wheel_type === 'covered_call' ? 'Covered Call' : '持有正股'}</span>
-                        <span>K${p.strike} · ${p.expiry} · ${daysToExpiry(p.expiry)}</span>
-                        <span class="stock-price-tag">正股价: <span class="${(p.stock_price || 0) > 0 ? 'green' : ''}">$${(p.stock_price || 0).toFixed(2)}</span></span>
-                        <span>${p.contracts}合约 (${p.contracts*100}股)</span>
-                        <span>Delta: ${p.delta || '-'}</span>
+                        <div><span class="holding-tag ${p.wheel_type}">${p.wheel_type === 'sell_put' ? 'Sell Put' : p.wheel_type === 'covered_call' ? 'Covered Call' : '持有正股'}</span></div>
+                        <div class="holding-info-row">
+                          <span>K${p.strike} · ${p.expiry} · ${daysToExpiry(p.expiry)}</span>
+                          <span class="stock-price-tag">股价: <span class="${(p.stock_price || 0) > 0 ? 'green' : ''}">$${(p.stock_price || 0).toFixed(0)}</span></span>
+                          <span>${p.contracts}张</span>
+                          <span>Δ${p.delta || '-'}</span>
+                        </div>
                       </div>
                       <div class="holding-value">
-                        <div>权利金: <span class="green">$${((p.premium || 0) * (p.contracts || 0) * 100).toFixed(2)}</span></div>
-                        <div>期权现价: $${(p.current_option_price || 0).toFixed(2)}/股</div>
+                        <div>权利金: <span class="green">$${((p.premium || 0) * (p.contracts || 0) * 100).toFixed(0)}</span></div>
+                        <div>现价: $${(p.current_option_price || 0).toFixed(0)}</div>
                       </div>
                       <div class="holding-pnl ${pctClass(p.pnl)}">${fmtNum(p.pnl)} (${fmtPct(p.pnl_pct)})</div>
                       <div class="holding-actions">
@@ -195,15 +197,17 @@ function renderStrategies() {
                     <div class="holding-item" onclick="event.stopPropagation()">
                       <div class="holding-symbol">${p.symbol}</div>
                       <div class="holding-details">
-                        <span class="holding-tag leaps">LEAPS Call</span>
-                        <span>K${p.strike} · ${p.expiry} · ${daysToExpiry(p.expiry)}</span>
-                        <span class="stock-price-tag">正股价: <span class="${(p.stock_price || 0) > 0 ? 'green' : ''}">$${(p.stock_price || 0).toFixed(2)}</span></span>
-                        <span>${p.contracts}合约</span>
-                        <span>Delta: ${p.delta || '-'}</span>
+                        <div><span class="holding-tag leaps">LEAPS Call</span></div>
+                        <div class="holding-info-row">
+                          <span>K${p.strike} · ${p.expiry} · ${daysToExpiry(p.expiry)}</span>
+                          <span class="stock-price-tag">股价: <span class="${(p.stock_price || 0) > 0 ? 'green' : ''}">$${(p.stock_price || 0).toFixed(0)}</span></span>
+                          <span>${p.contracts}张</span>
+                          <span>Δ${p.delta || '-'}</span>
+                        </div>
                       </div>
                       <div class="holding-value">
-                        <div>成本: $${(p.buy_price || 0).toFixed(2)}/股</div>
-                        <div>期权现价: $${(p.current_option_price || 0).toFixed(2)}/股</div>
+                        <div>成本: $${(p.buy_price || 0).toFixed(0)}</div>
+                        <div>现价: $${(p.current_option_price || 0).toFixed(0)}</div>
                       </div>
                       <div class="holding-pnl ${pctClass(p.pnl)}">${fmtNum(p.pnl)} (${fmtPct(p.pnl_pct)})</div>
                       <div class="holding-actions">
