@@ -208,6 +208,26 @@
       "pnl_pct": -2900.0,
       "status": "等待行权",
       "delta": -0.21
+    },
+    {
+      "id": "42aa0f66",
+      "symbol": "META",
+      "strategy": "wheel",
+      "notes": "",
+      "wheel_type": "sell_put",
+      "strike": 500.0,
+      "expiry": "2026-07-10",
+      "premium": 30.0,
+      "contracts": 1,
+      "quantity": 100,
+      "stock_price": 580.0,
+      "cost_basis": 470.0,
+      "current_option_price": 0.0,
+      "market_value": 58000.0,
+      "pnl": 3000.0,
+      "pnl_pct": 6.0,
+      "status": "等待行权",
+      "delta": -0.21
     }
   ],
   "cash": 23200.0,
