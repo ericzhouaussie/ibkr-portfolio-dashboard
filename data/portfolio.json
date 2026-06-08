@@ -219,11 +219,11 @@
       "contracts": 1,
       "quantity": 100,
       "buy_price": 50.0,
-      "current_option_price": 50.0,
+      "current_option_price": 30.0,
       "stock_price": 150.0,
-      "market_value": 5000.0,
-      "pnl": 0.0,
-      "pnl_pct": 0.0,
+      "market_value": 3000.0,
+      "pnl": -2000.0,
+      "pnl_pct": -40.0,
       "delta": 0.34
     }
   ],
