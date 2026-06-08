@@ -429,20 +429,21 @@ function editPosition(posId, stratId) {
   const p = portfolio.positions.find(x => x.id === posId);
   if (!p) return;
   if (p.strategy === 'wheel' || p.strategy === 'leaps') {
-    // 期权：更新正股价格
-    const currentStock = p.stock_price || 0;
-    const newPrice = prompt(`更新 ${p.symbol} 正股价格:`, currentStock);
-    if (newPrice === null) return;
-    const curr = parseFloat(newPrice);
-    if (isNaN(curr) || curr <= 0) return;
+    // 期权：输入期权当前价
+    const optLabel = p.strategy === 'wheel' ? '期权当前价(权利金现价)' : '期权当前价';
+    const currentOpt = p.current_option_price || 0;
+    const newOptPrice = prompt(`更新 ${p.symbol} ${optLabel}:`, currentOpt);
+    if (newOptPrice === null) return;
+    const opt = parseFloat(newOptPrice);
+    if (isNaN(opt) || opt < 0) { showToast('❌ 请输入有效价格'); return; }
     fetch('/api/option/price', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: posId, stock_price: curr }),
+      body: JSON.stringify({ id: posId, current_option_price: opt }),
     })
     .then(r => r.json())
     .then(res => {
-      if (res.success) { portfolio = res.portfolio; refreshAll(); showToast('✅ 股价已更新'); }
+      if (res.success) { portfolio = res.portfolio; refreshAll(); showToast('✅ 期权盈亏已更新'); }
       else { showToast('❌ ' + (res.error || '更新失败')); }
     });
   } else {

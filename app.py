@@ -668,16 +668,16 @@ def refresh_prices():
 
 @app.route("/api/option/price", methods=["POST"])
 def update_option_price():
-    """手动更新期权持仓的正股价格，并重算盈亏"""
+    """手动输入期权当前价，计算期权盈亏"""
     data = request.get_json()
     pos_id = data.get("id", "")
-    stock_price = data.get("stock_price", 0)
-    if not pos_id or stock_price <= 0:
-        return jsonify({"error": "缺少id或无效股价"}), 400
+    opt_price = data.get("current_option_price", 0)
+    if not pos_id:
+        return jsonify({"error": "缺少id"}), 400
     try:
-        stock_price = float(stock_price)
+        opt_price = float(opt_price) if opt_price else None
     except (ValueError, TypeError):
-        return jsonify({"error": "股价格式错误"}), 400
+        opt_price = None
 
     portfolio = load_portfolio()
     pos = None
@@ -687,56 +687,31 @@ def update_option_price():
             break
     if not pos:
         return jsonify({"error": "持仓不存在"}), 404
+    if pos["strategy"] not in ("wheel", "leaps"):
+        return jsonify({"error": "仅支持期权持仓"}), 400
 
-    price = stock_price
-    if pos["strategy"] == "wheel":
-        pos["stock_price"] = price
-        contracts = pos.get("contracts", 1)
-        strike = pos.get("strike", 0)
-        premium = pos.get("premium", 0)
-        wt = pos.get("wheel_type", "sell_put")
-        if wt == "sell_put":
-            intrinsic = max(0, (price - strike) * contracts * 100)
-            premium_income = premium * contracts * 100
-            pos["pnl"] = round(premium_income + intrinsic, 2)
-            effective_cost = strike * contracts * 100 - premium_income
-            pos["market_value"] = round(price * contracts * 100, 2)
-            cost_for_pct = effective_cost if effective_cost > 0 else premium_income
-            pos["pnl_pct"] = round((pos["pnl"] / cost_for_pct) * 100, 2) if cost_for_pct else 0
-        elif wt == "covered_call":
-            premium_income = premium * contracts * 100
-            shares = contracts * 100
-            stock_pnl = (min(price, strike) - pos.get("cost_basis", strike)) * shares
-            pos["pnl"] = round(premium_income + stock_pnl, 2)
-            pos["market_value"] = round(min(price, strike) * shares, 2)
-            cost_total = pos.get("cost_basis", strike) * shares
-            pos["pnl_pct"] = round((pos["pnl"] / cost_total) * 100, 2) if cost_total else 0
-        else:
-            shares = pos.get("quantity", contracts * 100)
-            cost_basis = pos.get("cost_basis", 0)
-            pos["market_value"] = round(price * shares, 2)
-            pos["pnl"] = round((price - cost_basis) * shares, 2) if cost_basis else 0
-            pos["pnl_pct"] = round(((price / cost_basis) - 1) * 100, 2) if cost_basis else 0
-    elif pos["strategy"] == "leaps":
-        pos["stock_price"] = price
-        strike = pos.get("strike", 0)
-        buy_price = pos.get("buy_price", 0)
-        contracts = pos.get("contracts", 1)
-        if strike > 0 and buy_price > 0:
-            estimated_opt_price = max(0, price - strike)
-            pos["current_option_price"] = round(estimated_opt_price, 2)
-            intrinsic = estimated_opt_price * 100 * contracts
-            total_cost = buy_price * 100 * contracts
-            pos["market_value"] = round(intrinsic, 2)
-            pos["pnl"] = round(intrinsic - total_cost, 2)
-            pos["pnl_pct"] = round(((estimated_opt_price / buy_price) - 1) * 100, 2) if buy_price else 0
+    # 更新期权当前价
+    if opt_price is not None and opt_price >= 0:
+        pos["current_option_price"] = opt_price
     else:
-        pos["current_price"] = price
-        qty = pos.get("quantity", 0)
-        avg = pos.get("avg_price", 0)
-        pos["market_value"] = round(abs(qty) * price, 2)
-        pos["pnl"] = round((price - avg) * qty, 2)
-        pos["pnl_pct"] = round((price / avg - 1) * 100, 2) if avg else 0
+        opt_price = pos.get("current_option_price", 0)
+
+    contracts = pos.get("contracts", 1)
+    if pos["strategy"] == "wheel":
+        premium = pos.get("premium", 0)   # 卖出时收到的权利金/股
+        # 空头盈亏 = (收入权利金 - 当前期权价) * 100 * 合约数
+        pos["pnl"] = round((premium - opt_price) * 100 * contracts, 2)
+        pos["market_value"] = round(opt_price * 100 * contracts, 2)
+        cost = premium * 100 * contracts
+        pos["pnl_pct"] = round((pos["pnl"] / cost) * 100, 2) if cost else 0
+
+    elif pos["strategy"] == "leaps":
+        buy_price = pos.get("buy_price", 0)  # 买入时支付的权利金/股
+        # 多头盈亏 = (当前期权价 - 买入价) * 100 * 合约数
+        if buy_price > 0:
+            pos["pnl"] = round((opt_price - buy_price) * 100 * contracts, 2)
+            pos["market_value"] = round(opt_price * 100 * contracts, 2)
+            pos["pnl_pct"] = round(((opt_price / buy_price) - 1) * 100, 2) if buy_price else 0
 
     save_portfolio(portfolio)
     return jsonify({"success": True, "position": pos, "portfolio": portfolio})
@@ -782,8 +757,12 @@ def close_position(pos_id):
     if position["strategy"] == "wheel":
         # Wheel策略平仓
         open_premium = position.get("premium", 0)
-        pnl = round((open_premium - close_price) * position["contracts"] * 100, 2)
+        contracts = position["contracts"]
+        pnl = round((open_premium - close_price) * contracts * 100, 2)
         pnl_pct = round((open_premium / close_price - 1) * 100, 2) if close_price > 0 else 0
+        
+        # 计算期权佣金
+        comm = calc_commission(0, close_price, is_option=True, contracts=contracts)
         
         record = {
             "id": generate_id("h_"),
@@ -792,22 +771,29 @@ def close_position(pos_id):
             "wheel_type": position.get("wheel_type", ""),
             "strike": position["strike"],
             "expiry": position["expiry"],
-            "contracts": position["contracts"],
+            "contracts": contracts,
             "open_premium": open_premium,
             "close_price": close_price,
             "open_delta": position.get("delta", 0),
-            "open_date": "",  # 可由前端传入或根据创建时间推断
+            "open_date": "",
             "close_date": close_date,
             "pnl": pnl,
             "pnl_pct": pnl_pct,
+            "commission": comm["total_cost"],
+            "fees": comm["fees"],
+            "total_cost": comm["total_cost"],
             "status": "已平仓",
             "notes": ""
         }
     elif position["strategy"] == "leaps":
         # LEAPS策略平仓
         open_price = position.get("buy_price", 0)
-        pnl = round((close_price - open_price) * position["contracts"] * 100, 2)
+        contracts = position["contracts"]
+        pnl = round((close_price - open_price) * contracts * 100, 2)
         pnl_pct = round((close_price / open_price - 1) * 100, 2) if open_price > 0 else 0
+        
+        # 计算期权佣金
+        comm = calc_commission(0, close_price, is_option=True, contracts=contracts)
         
         record = {
             "id": generate_id("h_"),
@@ -815,7 +801,7 @@ def close_position(pos_id):
             "strategy": "leaps",
             "strike": position["strike"],
             "expiry": position["expiry"],
-            "contracts": position["contracts"],
+            "contracts": contracts,
             "open_price": open_price,
             "close_price": close_price,
             "open_delta": position.get("delta", 0),
@@ -823,6 +809,9 @@ def close_position(pos_id):
             "close_date": close_date,
             "pnl": pnl,
             "pnl_pct": pnl_pct,
+            "commission": comm["total_cost"],
+            "fees": comm["fees"],
+            "total_cost": comm["total_cost"],
             "status": "已平仓",
             "notes": ""
         }
