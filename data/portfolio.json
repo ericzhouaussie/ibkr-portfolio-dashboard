@@ -100,7 +100,7 @@
       "cost_basis": 0.0,
       "current_option_price": 300.0,
       "market_value": 30000.0,
-      "pnl": -30000.0,
+      "pnl": 30000.0,
       "pnl_pct": 0,
       "status": "等待行权",
       "delta": 0.0
@@ -204,7 +204,7 @@
       "cost_basis": 180.0,
       "current_option_price": 600.0,
       "market_value": 60000.0,
-      "pnl": -58000.0,
+      "pnl": 58000.0,
       "pnl_pct": -2900.0,
       "status": "等待行权",
       "delta": -0.21
@@ -224,7 +224,7 @@
       "cost_basis": 470.0,
       "current_option_price": 32.0,
       "market_value": 3200.0,
-      "pnl": -200.0,
+      "pnl": 200.0,
       "pnl_pct": -6.67,
       "status": "等待行权",
       "delta": -0.21
