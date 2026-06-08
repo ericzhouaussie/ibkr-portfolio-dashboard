@@ -3,7 +3,7 @@ IBKR Portfolio Dashboard - Flask App v2
 Strategy-based portfolio management with collapsible strategy groups.
 """
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session, redirect
 from werkzeug.utils import secure_filename
 import pandas as pd
 from pathlib import Path
@@ -19,6 +19,8 @@ from parser import (
 )
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key-change-in-prod")
+DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "ibkr2026")
 app.config["UPLOAD_FOLDER"] = Path(__file__).parent / "uploads"
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
 
@@ -367,6 +369,33 @@ def refresh_all_prices(api_key=""):
 
     save_portfolio(portfolio)
     return {"portfolio": portfolio, "updated": updated, "errors": errors}
+
+
+# ---- Auth ----
+
+@app.before_request
+def require_auth():
+    if request.path == "/login" or request.path.startswith("/static/"):
+        return
+    if not session.get("authenticated"):
+        return redirect("/login")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        if password == DASHBOARD_PASSWORD:
+            session["authenticated"] = True
+            return redirect("/")
+        return render_template("login.html", error="密码错误")
+    return render_template("login.html", error=None)
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/login")
 
 
 # ---- Routes ----
