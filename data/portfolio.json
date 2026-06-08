@@ -159,18 +159,6 @@
       ]
     },
     {
-      "id": "p10",
-      "symbol": "AMD",
-      "strategy": "swing",
-      "notes": "",
-      "quantity": 60.0,
-      "avg_price": 210.625,
-      "current_price": 466.38,
-      "market_value": 27982.8,
-      "pnl": 15345.3,
-      "pnl_pct": 121.43
-    },
-    {
       "id": "3dc0af1b",
       "symbol": "META",
       "strategy": "wheel",
@@ -423,7 +411,7 @@
       "created_at": "2026-06-07 19:35"
     }
   ],
-  "cash_base_usd": 49199.01,
+  "cash_base_usd": 109198.66,
   "transactions": [
     {
       "date": "2026-06-05",
