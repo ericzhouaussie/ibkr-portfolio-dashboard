@@ -513,7 +513,7 @@ function renderStrategyPieChart() {
     },
     series: [{
       type: 'pie',
-      radius: ['50%', '78%'],
+      radius: ['42%', '68%'],
       center: ['50%', '50%'],
       avoidLabelOverlap: false,
       label: { show: false },
