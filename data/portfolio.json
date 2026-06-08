@@ -143,18 +143,23 @@
       "id": "p9",
       "symbol": "TSLA",
       "strategy": "swing",
-      "quantity": 15,
-      "avg_price": 245,
+      "quantity": 115.0,
+      "avg_price": 379.78,
       "current_price": 391.0,
-      "market_value": 5865.0,
-      "pnl": 2190.0,
-      "pnl_pct": 59.59,
+      "market_value": 44965.0,
+      "pnl": 1290.3,
+      "pnl_pct": 2.95,
       "notes": "短线持有",
       "buy_trades": [
         {
           "date": "2026-06-07",
           "qty": 15,
           "price": 245
+        },
+        {
+          "date": "2026-06-08",
+          "qty": 100.0,
+          "price": 400.0
         }
       ]
     },
@@ -356,6 +361,20 @@
       "total_cost": 0.65,
       "status": "已平仓",
       "notes": ""
+    },
+    {
+      "id": "hist_75c38dbe",
+      "date": "2026-06-08",
+      "symbol": "TSLA",
+      "action": "BUY",
+      "quantity": 100.0,
+      "price": 400.0,
+      "cost_price": 0,
+      "pnl": 0,
+      "strategy": "swing",
+      "note": "SWING加仓 100.0股 @400.00",
+      "commission": 0.35,
+      "fees": 0
     }
   ],
   "cash_flows": [
@@ -409,9 +428,17 @@
       "amount_usd": 10000.0,
       "note": "",
       "created_at": "2026-06-07 19:35"
+    },
+    {
+      "id": "cf_fa9cbd1e",
+      "date": "2026-06-08",
+      "type": "out",
+      "amount_usd": -43675.1,
+      "symbol": "TSLA",
+      "note": "SWING买入115.0股"
     }
   ],
-  "cash_base_usd": 109198.66,
+  "cash_base_usd": 65523.56,
   "transactions": [
     {
       "date": "2026-06-05",
