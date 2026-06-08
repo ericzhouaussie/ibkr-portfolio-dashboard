@@ -437,7 +437,9 @@
       "type": "out",
       "amount_usd": -43675.1,
       "symbol": "TSLA",
-      "note": "SWING买入115.0股"
+      "note": "SWING买入115.0股",
+      "currency": "CNY",
+      "original_amount": 0
     }
   ],
   "cash_base_usd": 65612.91,
