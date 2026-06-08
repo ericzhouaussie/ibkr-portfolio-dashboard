@@ -666,6 +666,82 @@ def refresh_prices():
         return jsonify({"success": True, "portfolio": result})
 
 
+@app.route("/api/option/price", methods=["POST"])
+def update_option_price():
+    """手动更新期权持仓的正股价格，并重算盈亏"""
+    data = request.get_json()
+    pos_id = data.get("id", "")
+    stock_price = data.get("stock_price", 0)
+    if not pos_id or stock_price <= 0:
+        return jsonify({"error": "缺少id或无效股价"}), 400
+    try:
+        stock_price = float(stock_price)
+    except (ValueError, TypeError):
+        return jsonify({"error": "股价格式错误"}), 400
+
+    portfolio = load_portfolio()
+    pos = None
+    for p in portfolio.get("positions", []):
+        if p.get("id") == pos_id:
+            pos = p
+            break
+    if not pos:
+        return jsonify({"error": "持仓不存在"}), 404
+
+    price = stock_price
+    if pos["strategy"] == "wheel":
+        pos["stock_price"] = price
+        contracts = pos.get("contracts", 1)
+        strike = pos.get("strike", 0)
+        premium = pos.get("premium", 0)
+        wt = pos.get("wheel_type", "sell_put")
+        if wt == "sell_put":
+            intrinsic = max(0, (price - strike) * contracts * 100)
+            premium_income = premium * contracts * 100
+            pos["pnl"] = round(premium_income + intrinsic, 2)
+            effective_cost = strike * contracts * 100 - premium_income
+            pos["market_value"] = round(price * contracts * 100, 2)
+            cost_for_pct = effective_cost if effective_cost > 0 else premium_income
+            pos["pnl_pct"] = round((pos["pnl"] / cost_for_pct) * 100, 2) if cost_for_pct else 0
+        elif wt == "covered_call":
+            premium_income = premium * contracts * 100
+            shares = contracts * 100
+            stock_pnl = (min(price, strike) - pos.get("cost_basis", strike)) * shares
+            pos["pnl"] = round(premium_income + stock_pnl, 2)
+            pos["market_value"] = round(min(price, strike) * shares, 2)
+            cost_total = pos.get("cost_basis", strike) * shares
+            pos["pnl_pct"] = round((pos["pnl"] / cost_total) * 100, 2) if cost_total else 0
+        else:
+            shares = pos.get("quantity", contracts * 100)
+            cost_basis = pos.get("cost_basis", 0)
+            pos["market_value"] = round(price * shares, 2)
+            pos["pnl"] = round((price - cost_basis) * shares, 2) if cost_basis else 0
+            pos["pnl_pct"] = round(((price / cost_basis) - 1) * 100, 2) if cost_basis else 0
+    elif pos["strategy"] == "leaps":
+        pos["stock_price"] = price
+        strike = pos.get("strike", 0)
+        buy_price = pos.get("buy_price", 0)
+        contracts = pos.get("contracts", 1)
+        if strike > 0 and buy_price > 0:
+            estimated_opt_price = max(0, price - strike)
+            pos["current_option_price"] = round(estimated_opt_price, 2)
+            intrinsic = estimated_opt_price * 100 * contracts
+            total_cost = buy_price * 100 * contracts
+            pos["market_value"] = round(intrinsic, 2)
+            pos["pnl"] = round(intrinsic - total_cost, 2)
+            pos["pnl_pct"] = round(((estimated_opt_price / buy_price) - 1) * 100, 2) if buy_price else 0
+    else:
+        pos["current_price"] = price
+        qty = pos.get("quantity", 0)
+        avg = pos.get("avg_price", 0)
+        pos["market_value"] = round(abs(qty) * price, 2)
+        pos["pnl"] = round((price - avg) * qty, 2)
+        pos["pnl_pct"] = round((price / avg - 1) * 100, 2) if avg else 0
+
+    save_portfolio(portfolio)
+    return jsonify({"success": True, "position": pos, "portfolio": portfolio})
+
+
 @app.route("/api/targets", methods=["GET"])
 def get_targets():
     return jsonify({"targets": load_target_allocation() or []})

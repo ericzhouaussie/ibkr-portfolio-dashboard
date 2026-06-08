@@ -428,20 +428,39 @@ function deletePosition(posId) {
 function editPosition(posId, stratId) {
   const p = portfolio.positions.find(x => x.id === posId);
   if (!p) return;
-  // Simple inline edit: prompt for current price update
-  const newPrice = prompt(`更新 ${p.symbol} 当前价:`, p.current_price);
-  if (newPrice === null) return;
-  const curr = parseFloat(newPrice);
-  if (isNaN(curr)) return;
-  fetch('/api/portfolio/position', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id: posId, symbol: p.symbol, quantity: p.quantity, avg_price: p.avg_price, current_price: curr, strategy: stratId }),
-  })
+  if (p.strategy === 'wheel' || p.strategy === 'leaps') {
+    // 期权：更新正股价格
+    const currentStock = p.stock_price || 0;
+    const newPrice = prompt(`更新 ${p.symbol} 正股价格:`, currentStock);
+    if (newPrice === null) return;
+    const curr = parseFloat(newPrice);
+    if (isNaN(curr) || curr <= 0) return;
+    fetch('/api/option/price', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: posId, stock_price: curr }),
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) { portfolio = res.portfolio; refreshAll(); showToast('✅ 股价已更新'); }
+      else { showToast('❌ ' + (res.error || '更新失败')); }
+    });
+  } else {
+    // 正股：更新 current_price
+    const newPrice = prompt(`更新 ${p.symbol} 当前价:`, p.current_price);
+    if (newPrice === null) return;
+    const curr = parseFloat(newPrice);
+    if (isNaN(curr)) return;
+    fetch('/api/portfolio/position', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: posId, symbol: p.symbol, quantity: p.quantity, avg_price: p.avg_price, current_price: curr, strategy: stratId }),
+    })
     .then(r => r.json())
     .then(res => {
       if (res.success) { portfolio = res.portfolio; refreshAll(); showToast('✅ 已更新'); }
     });
+  }
 }
 
 
