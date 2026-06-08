@@ -2685,5 +2685,14 @@
       "processed": true,
       "id": "txn_adac212f"
     }
-  ]
+  ],
+  "profit_recycling": {
+    "wheel_to_dca": {
+      "enabled": true,
+      "threshold": 5000,
+      "total_recycled": 0,
+      "last_recycle_pnl": 0,
+      "history": []
+    }
+  }
 }
