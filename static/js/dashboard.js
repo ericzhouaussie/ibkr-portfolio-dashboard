@@ -176,8 +176,9 @@ function renderStrategies() {
                       <div class="holding-value">
                         <div>权利金: <span class="green">$${((p.premium || 0) * (p.contracts || 0) * 100).toFixed(2)}</span></div>
                         <div>股价: $${(p.stock_price || 0).toFixed(2)}</div>
+                        <div>期权现价: $${(p.current_option_price || 0).toFixed(2)}/股</div>
                       </div>
-                      <div class="holding-pnl ${pctClass(p.pnl)}">${fmtNum(p.pnl)}</div>
+                      <div class="holding-pnl ${pctClass(p.pnl)}">${fmtNum(p.pnl)} (${fmtPct(p.pnl_pct)})</div>
                       <div class="holding-actions">
                         <button class="btn btn-sm btn-close" onclick="closePosition('${p.id}','${s.id}','${p.symbol}')">🔒 平仓</button>
                         <button class="btn btn-sm" onclick="editPosition('${p.id}','${s.id}')">✏️</button>
