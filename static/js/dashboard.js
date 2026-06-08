@@ -546,10 +546,10 @@ function renderStrategyPnlChart() {
       backgroundColor: '#151823', borderColor: '#1e2235', textStyle: { color: '#e8eaf0' },
       formatter: p => `<b>${data[p[0].dataIndex].name}</b><br/>PnL: ${fmtNum(data[p[0].dataIndex].value)}`,
     },
-    grid: { left: 70, right: 20, top: 10, bottom: 40 },
+    grid: { left: 70, right: 20, top: 10, bottom: 60 },
     xAxis: {
-      type: 'category', data: data.map(d => d.name),
-      axisLabel: { color: '#6b7194', fontSize: 11 },
+      type: 'category', data: data.map(d => d.name.split(' ').slice(1).join(' ') || d.name),
+      axisLabel: { color: '#6b7194', fontSize: 10, rotate: 35, interval: 0 },
       axisLine: { lineStyle: { color: '#1e2235' } },
     },
     yAxis: {
