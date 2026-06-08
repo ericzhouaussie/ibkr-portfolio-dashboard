@@ -341,7 +341,8 @@ body {
   font-weight: 600;
   font-size: 0.9rem;
   text-align: right;
-  min-width: 80px;
+  min-width: 120px;
+  white-space: nowrap;
 }
 
 .holding-pnl {
