@@ -573,13 +573,15 @@ def delete_position(pos_id):
     return jsonify({"success": True, "portfolio": portfolio})
 
 
-@app.route("/api/portfolio/cash", methods=["POST"])
-def update_cash():
+@app.route("/api/portfolio/cash/adjust", methods=["POST"])
+def adjust_cash():
+    """手动调整现金余额（直接设置新值，不影响出入金流水）"""
     data = request.get_json()
+    new_cash = float(data.get("cash_usd", 0))
     portfolio = load_portfolio()
-    portfolio["cash"] = float(data.get("cash", 0))
+    portfolio["cash_base_usd"] = round(new_cash, 2)
     save_portfolio(portfolio)
-    return jsonify({"success": True, "portfolio": portfolio})
+    return jsonify({"success": True, "cash_base_usd": portfolio["cash_base_usd"]})
 
 
 # ---- Cash Flow ----

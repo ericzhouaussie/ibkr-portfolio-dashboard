@@ -231,7 +231,19 @@
   <div class="modal" style="max-width: 900px; max-height: 80vh; overflow-y: auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <h3>💰 资金流水</h3>
+      <button class="btn btn-secondary" onclick="openCashAdjustForm()" style="font-size:0.85rem">✏️ 调整现金</button>
       <button class="btn" onclick="closeModal('cashflow-modal')">✕ 关闭</button>
+    </div>
+    <div id="cash-adjust-form" style="display:none;margin-bottom:16px;padding:12px;background:var(--bg-primary);border-radius:8px;border:1px solid var(--border)">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:0.85rem">直接设置现金为</span>
+        <input type="number" id="adj-cash-usd" placeholder="例如 35000" step="0.01" min="0"
+               style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg-primary);color:var(--text);width:120px">
+        <span style="font-size:0.85rem">美元</span>
+        <button class="btn btn-primary" onclick="submitCashAdjust()">确认</button>
+        <button class="btn" onclick="document.getElementById('cash-adjust-form').style.display='none'" style="font-size:0.85rem">取消</button>
+        <span id="adj-cash-msg" style="font-size:0.8rem;color:var(--text-dim);margin-left:8px"></span>
+      </div>
     </div>
     <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
       <button class="btn btn-primary" onclick="openCashFlowForm('deposit')">⬇️ 入金</button>

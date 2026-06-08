@@ -721,6 +721,41 @@ function openCashFlowModal() {
   loadCashFlows();
 }
 
+// === 现金调整 ===
+function openCashAdjustForm() {
+  const form = document.getElementById('cash-adjust-form');
+  form.style.display = 'block';
+  document.getElementById('adj-cash-usd').value = (portfolio.cash_base_usd || 0).toFixed(2);
+  document.getElementById('adj-cash-msg').textContent = '';
+  document.getElementById('adj-cash-usd').focus();
+  document.getElementById('adj-cash-usd').select();
+}
+
+async function submitCashAdjust() {
+  const newVal = parseFloat(document.getElementById('adj-cash-usd').value);
+  const msg = document.getElementById('adj-cash-msg');
+  if (isNaN(newVal) || newVal < 0) {
+    msg.textContent = '请输入有效金额';
+    msg.style.color = 'red';
+    return;
+  }
+  const resp = await fetch('/api/portfolio/cash/adjust', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({cash_usd: newVal})
+  });
+  const data = await resp.json();
+  if (data.success) {
+    portfolio.cash_base_usd = data.cash_base_usd;
+    renderPortfolio();
+    msg.textContent = `已更新为 $${newVal.toFixed(2)}`;
+    msg.style.color = 'green';
+  } else {
+    msg.textContent = '更新失败';
+    msg.style.color = 'red';
+  }
+}
+
 function openCashFlowForm(type) {
   const form = document.getElementById('cashflow-form');
   form.style.display = 'block';
