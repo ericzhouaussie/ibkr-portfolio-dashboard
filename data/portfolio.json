@@ -208,26 +208,9 @@
       "pnl_pct": -2900.0,
       "status": "等待行权",
       "delta": -0.21
-    },
-    {
-      "id": "e5c10c9f",
-      "symbol": "NVDA",
-      "strategy": "leaps",
-      "notes": "",
-      "strike": 100.0,
-      "expiry": "2027-12-31",
-      "contracts": 1,
-      "quantity": 100,
-      "buy_price": 50.0,
-      "current_option_price": 30.0,
-      "stock_price": 150.0,
-      "market_value": 3000.0,
-      "pnl": -2000.0,
-      "pnl_pct": -40.0,
-      "delta": 0.34
     }
   ],
-  "cash": 20000.0,
+  "cash": 23200.0,
   "history": [
     {
       "id": "h_6280acf0",
@@ -347,6 +330,23 @@
       "note": "DCA加仓 5.0股 @150.00",
       "commission": 0.35,
       "fees": 0
+    },
+    {
+      "id": "h_eaa8fdda",
+      "symbol": "NVDA",
+      "strategy": "leaps",
+      "strike": 100.0,
+      "expiry": "2027-12-31",
+      "contracts": 1,
+      "open_price": 50.0,
+      "close_price": 32.0,
+      "open_delta": 0.34,
+      "open_date": "",
+      "close_date": "2026-06-08",
+      "pnl": -1800.0,
+      "pnl_pct": -36.0,
+      "status": "已平仓",
+      "notes": ""
     }
   ],
   "cash_flows": [
