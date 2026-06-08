@@ -183,10 +183,10 @@
       "quantity": 100,
       "stock_price": 593.0,
       "cost_basis": 100.0,
-      "current_option_price": 30.0,
-      "market_value": 3000.0,
-      "pnl": 7000.0,
-      "pnl_pct": 70.0,
+      "current_option_price": 110.0,
+      "market_value": 11000.0,
+      "pnl": -1000.0,
+      "pnl_pct": -10.0,
       "delta": -0.21
     },
     {
