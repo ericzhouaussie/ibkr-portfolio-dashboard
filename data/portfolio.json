@@ -161,25 +161,13 @@
       "id": "p10",
       "symbol": "AMD",
       "strategy": "swing",
+      "notes": "",
       "quantity": 60.0,
       "avg_price": 210.625,
-      "current_price": 466.38,
-      "market_value": 27982.8,
-      "pnl": 15345.3,
-      "pnl_pct": 121.43,
-      "notes": "",
-      "buy_trades": [
-        {
-          "date": "2026-06-07",
-          "qty": 10.0,
-          "price": 163.75
-        },
-        {
-          "date": "2026-06-07",
-          "qty": 50.0,
-          "price": 220.0
-        }
-      ]
+      "current_price": 200.0,
+      "market_value": 12000.0,
+      "pnl": -637.5,
+      "pnl_pct": -5.04
     },
     {
       "id": "3dc0af1b",
