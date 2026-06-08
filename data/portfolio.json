@@ -202,10 +202,10 @@
       "quantity": 100,
       "stock_price": 593.0,
       "cost_basis": 180.0,
-      "current_option_price": 0.0,
-      "market_value": 56000.0,
-      "pnl": 2000.0,
-      "pnl_pct": 10.0,
+      "current_option_price": 600.0,
+      "market_value": 60000.0,
+      "pnl": -58000.0,
+      "pnl_pct": -2900.0,
       "status": "等待行权",
       "delta": -0.21
     }
