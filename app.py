@@ -518,14 +518,6 @@ def add_position():
         if premium > 0 and contracts > 0:
             cash_change = premium * contracts * 100
             portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) + cash_change, 2)
-            portfolio.setdefault("cash_flows", []).append({
-                "id": generate_id("cf_"),
-                "date": now_str,
-                "type": "in",
-                "amount_usd": cash_change,
-                "symbol": position["symbol"],
-                "note": f"Wheel开仓收取权利金",
-            })
     elif position["strategy"] == "leaps":
         # 买LEAPS付钱：cash -= buy_price * contracts * 100 + 佣金
         buy_price = position.get("buy_price", 0)
@@ -535,14 +527,6 @@ def add_position():
             comm = calc_commission(0, buy_price, is_option=True, contracts=contracts)
             net_cost = cost + comm["total_cost"]
             portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) - net_cost, 2)
-            portfolio.setdefault("cash_flows", []).append({
-                "id": generate_id("cf_"),
-                "date": now_str,
-                "type": "out",
-                "amount_usd": -net_cost,
-                "symbol": position["symbol"],
-                "note": f"LEAPS开仓买入期权",
-            })
     elif position["strategy"] in ("dca", "swing"):
         # 买入股票/ETF付钱
         qty = position.get("quantity", 0)
@@ -552,14 +536,6 @@ def add_position():
             comm = calc_commission(qty, price)
             net_cost = cost + comm["total_cost"]
             portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) - net_cost, 2)
-            portfolio.setdefault("cash_flows", []).append({
-                "id": generate_id("cf_"),
-                "date": now_str,
-                "type": "out",
-                "amount_usd": -net_cost,
-                "symbol": position["symbol"],
-                "note": f"{position['strategy'].upper()}买入{qty}股",
-            })
 
     save_portfolio(portfolio)
     return jsonify({"success": True, "position": position, "portfolio": portfolio})
