@@ -96,7 +96,7 @@
       "premium": 0.0,
       "contracts": 1,
       "quantity": 100,
-      "stock_price": 0.0,
+      "stock_price": 391.0,
       "cost_basis": 0.0,
       "current_option_price": 0.0,
       "market_value": 0.0,
@@ -133,7 +133,7 @@
       "quantity": 100,
       "buy_price": 0.0,
       "current_option_price": 0.0,
-      "stock_price": 0.0,
+      "stock_price": 593.0,
       "market_value": 0.0,
       "pnl": 0.0,
       "pnl_pct": 0,
@@ -165,10 +165,10 @@
       "notes": "",
       "quantity": 60.0,
       "avg_price": 210.625,
-      "current_price": 200.0,
-      "market_value": 12000.0,
-      "pnl": -637.5,
-      "pnl_pct": -5.04
+      "current_price": 466.38,
+      "market_value": 27982.8,
+      "pnl": 15345.3,
+      "pnl_pct": 121.43
     },
     {
       "id": "3dc0af1b",
