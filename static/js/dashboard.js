@@ -26,8 +26,10 @@ function daysToExpiry(dateStr) {
   const today = new Date(); today.setHours(0,0,0,0);
   const exp = new Date(dateStr); exp.setHours(0,0,0,0);
   const days = Math.ceil((exp - today) / (1000 * 60 * 60 * 24));
-  if (days < 0) return '<span style="color:#ff4757">已过期</span>';
-  if (days <= 7) return '<span style="color:#ff4757">剩余' + days + '天</span>';
+  if (days < 0) return '<span style="color:#ff4757">已过期!</span>';
+  if (days <= 7) return '<span style="color:#ff4757;font-weight:bold">⚠剩余' + days + '天 可平仓</span>';
+  if (days <= 21) return '<span style="color:#ff4757;font-weight:bold">剩余' + days + '天 请平仓</span>';
+  if (days <= 25) return '<span style="color:#f59e0b;font-weight:bold">⏰剩余' + days + '天 接近平仓</span>';
   if (days <= 30) return '<span style="color:#f59e0b">剩余' + days + '天</span>';
   return '<span style="color:var(--text-dim)">剩余' + days + '天</span>';
 }
