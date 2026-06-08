@@ -208,6 +208,23 @@
       "pnl_pct": -2900.0,
       "status": "等待行权",
       "delta": -0.21
+    },
+    {
+      "id": "e5c10c9f",
+      "symbol": "NVDA",
+      "strategy": "leaps",
+      "notes": "",
+      "strike": 100.0,
+      "expiry": "2027-12-31",
+      "contracts": 1,
+      "quantity": 100,
+      "buy_price": 50.0,
+      "current_option_price": 50.0,
+      "stock_price": 150.0,
+      "market_value": 5000.0,
+      "pnl": 0.0,
+      "pnl_pct": 0.0,
+      "delta": 0.34
     }
   ],
   "cash": 20000.0,
