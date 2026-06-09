@@ -55,9 +55,29 @@
       "market_value": 25000.0,
       "pnl": -5000.0,
       "pnl_pct": -16.67
+    },
+    {
+      "id": "8408501c",
+      "symbol": "META",
+      "strategy": "wheel",
+      "notes": "",
+      "wheel_type": "sell_put",
+      "strike": 250.0,
+      "expiry": "2026-06-30",
+      "premium": 2000.0,
+      "contracts": 1,
+      "quantity": 100,
+      "stock_price": 540.0,
+      "cost_basis": -1750.0,
+      "current_option_price": 0.0,
+      "market_value": 54000.0,
+      "pnl": 200000.0,
+      "pnl_pct": 800.0,
+      "status": "等待行权",
+      "delta": -0.25
     }
   ],
-  "cash_base_usd": -30000.35,
+  "cash_base_usd": 169999.65,
   "cash_flows": [],
   "pnl_baselines": {}
 }
