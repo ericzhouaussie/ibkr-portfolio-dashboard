@@ -50,18 +50,6 @@
       "notes": ""
     },
     {
-      "id": "p2",
-      "symbol": "MSFT",
-      "strategy": "dca",
-      "quantity": 80,
-      "avg_price": 410,
-      "current_price": 416.67,
-      "market_value": 33333.6,
-      "pnl": 533.6,
-      "pnl_pct": 1.63,
-      "notes": ""
-    },
-    {
       "id": "p3",
       "symbol": "QQQ",
       "strategy": "dca",
