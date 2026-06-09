@@ -34,6 +34,13 @@
       "icon": "💵",
       "color": "#3b82f6",
       "desc": "现金储备，等待机会"
+    },
+    {
+      "id": "816c08a3",
+      "name": "",
+      "icon": "📁",
+      "color": "#8b8d9a",
+      "desc": ""
     }
   ],
   "positions": [],

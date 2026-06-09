@@ -273,89 +273,44 @@ function toggleStrategy(id) {
 
 // === Position Actions ===
 function renderAddPositionForm(stratId) {
-  return `<button class="btn btn-sm btn-primary" onclick="openAddPositionModal('${stratId}')">➕ 添加持仓</button>`;
-}
-
-function openAddPositionModal(stratId) {
-  document.getElementById('add-strategy-id').value = stratId;
-  const isOpt = (stratId === 'wheel' || stratId === 'leaps');
-  document.getElementById('add-stock-fields').style.display = isOpt ? 'none' : 'block';
-  document.getElementById('add-option-fields').style.display = isOpt ? 'block' : 'none';
   if (stratId === 'wheel') {
-    document.getElementById('add-wheel-type-group').style.display = 'block';
-    document.getElementById('add-premium-group').style.display = 'block';
-    document.getElementById('add-buy-price-group').style.display = 'none';
-  } else if (stratId === 'leaps') {
-    document.getElementById('add-wheel-type-group').style.display = 'none';
-    document.getElementById('add-premium-group').style.display = 'none';
-    document.getElementById('add-buy-price-group').style.display = 'block';
+    return `
+      <input class="input-sym" id="add-sym-${stratId}" placeholder="AMZN" style="width:70px">
+      <select id="add-wheel-type-${stratId}" style="padding:5px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.8rem">
+        <option value="sell_put">Sell Put</option>
+        <option value="covered_call">Covered Call</option>
+        <option value="holding_stock">持有正股</option>
+      </select>
+      <input class="input-strike" id="add-strike-${stratId}" type="number" step="any" placeholder="Strike" style="width:70px">
+      <input class="input-expiry" id="add-expiry-${stratId}" type="date" style="width:120px">
+      <input class="input-contracts" id="add-contracts-${stratId}" type="number" step="1" placeholder="合约" style="width:55px">
+      <input class="input-premium" id="add-premium-${stratId}" type="number" step="any" placeholder="权利金" style="width:65px">
+      <input class="input-delta" id="add-delta-${stratId}" type="number" step="0.01" placeholder="Delta" style="width:65px">
+      <input class="input-stock-price" id="add-stock-price-${stratId}" type="number" step="any" placeholder="股价" style="width:65px">
+      <button class="btn btn-sm btn-primary" onclick="addPositionToStrategy('${stratId}')">添加</button>
+    `;
   }
-  document.getElementById('add-position-modal').classList.add('active');
-}
-
-function submitAddPosition(e) {
-  e.preventDefault();
-  const sid = document.getElementById('add-strategy-id').value;
-  if (sid === 'wheel' || sid === 'leaps') {
-    const sym = (document.getElementById('add-opt-symbol').value || '').toUpperCase();
-    if (!sym) { showToast('请填写标的代码', 'error'); return; }
-    const body = { symbol: sym, strategy: sid };
-    if (sid === 'wheel') {
-      body.wheel_type = document.getElementById('add-wheel-type').value;
-      body.strike = parseFloat(document.getElementById('add-strike').value) || 0;
-      body.expiry = document.getElementById('add-expiry').value;
-      body.contracts = parseInt(document.getElementById('add-contracts').value) || 1;
-      body.premium = parseFloat(document.getElementById('add-premium').value) || 0;
-      body.delta = parseFloat(document.getElementById('add-delta').value) || 0;
-      body.stock_price = parseFloat(document.getElementById('add-stock-price-opt').value) || 0;
-    } else {
-      body.strike = parseFloat(document.getElementById('add-strike').value) || 0;
-      body.expiry = document.getElementById('add-expiry').value;
-      body.contracts = parseInt(document.getElementById('add-contracts').value) || 1;
-      body.buy_price = parseFloat(document.getElementById('add-buy-price').value) || 0;
-      body.delta = parseFloat(document.getElementById('add-delta').value) || 0;
-      body.stock_price = parseFloat(document.getElementById('add-stock-price-opt').value) || 0;
-    }
-    if (!body.strike || !body.expiry) { showToast('请填写完整信息', 'error'); return; }
-    fetch('/api/portfolio/position', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-      .then(r => r.json())
-      .then(res => {
-        if (res.success) { portfolio = res.portfolio; closeModal('add-position-modal'); refreshAll(); showToast('✅ 已添加 ' + sym); }
-        else showToast('❌ ' + (res.error || '添加失败'), 'error');
-      })
-      .catch(() => showToast('❌ 网络错误', 'error'));
-  } else {
-    const sym = (document.getElementById('add-symbol').value || '').toUpperCase();
-    const qty = parseInt(document.getElementById('add-qty').value) || 0;
-    const avg = parseFloat(document.getElementById('add-avg-price').value) || 0;
-    if (!sym || !qty || !avg) { showToast('请填写完整信息', 'error'); return; }
-    fetch('/api/portfolio/position', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        symbol: sym, strategy: sid,
-        quantity: qty, avg_price: avg,
-        current_price: avg, market_value: qty * avg,
-        pnl: 0, pnl_pct: 0,
-      }),
-    })
-      .then(r => r.json())
-      .then(res => {
-        if (res.success) { portfolio = res.portfolio; closeModal('add-position-modal'); refreshAll(); showToast('✅ 已添加 ' + sym); }
-        else showToast('❌ ' + (res.error || '添加失败'), 'error');
-      })
-      .catch(() => showToast('❌ 网络错误', 'error'));
+  if (stratId === 'leaps') {
+    return `
+      <input class="input-sym" id="add-sym-${stratId}" placeholder="NVDA" style="width:70px">
+      <input class="input-strike" id="add-strike-${stratId}" type="number" step="any" placeholder="Strike" style="width:70px">
+      <input class="input-expiry" id="add-expiry-${stratId}" type="date" style="width:120px">
+      <input class="input-contracts" id="add-contracts-${stratId}" type="number" step="1" placeholder="合约" style="width:55px">
+      <input class="input-buy-price" id="add-buy-price-${stratId}" type="number" step="any" placeholder="买入价" style="width:65px">
+      <input class="input-opt-price" id="add-opt-price-${stratId}" type="number" step="any" placeholder="现价" style="width:65px">
+      <input class="input-delta" id="add-delta-${stratId}" type="number" step="0.01" placeholder="Delta" style="width:65px">
+      <input class="input-stock-price" id="add-stock-price-${stratId}" type="number" step="any" placeholder="股价" style="width:65px">
+      <button class="btn btn-sm btn-primary" onclick="addPositionToStrategy('${stratId}')">添加</button>
+    `;
   }
-}
-
-// 
-}
-
-function addPositionToStrategy
+  // 普通策略 (DCA, Swing)
+  return `
+    <input class="input-sym" id="add-sym-${stratId}" placeholder="AAPL" style="width:70px">
+    <input class="input-qty" id="add-qty-${stratId}" type="number" step="any" placeholder="数量" style="width:60px">
+    <input class="input-price" id="add-price-${stratId}" type="number" step="any" placeholder="成本价" style="width:75px">
+    <input class="input-curr" id="add-curr-${stratId}" type="number" step="any" placeholder="现价" style="width:75px">
+    <button class="btn btn-sm btn-primary" onclick="addPositionToStrategy('${stratId}')">添加</button>
+  `;
 }
 
 function addPositionToStrategy(stratId) {
