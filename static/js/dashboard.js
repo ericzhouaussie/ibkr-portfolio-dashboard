@@ -34,6 +34,48 @@ function daysToExpiry(dateStr) {
   return '<span style="color:var(--text-dim)">剩余' + days + '天</span>';
 }
 
+// 计算期权对应的正股年化 ROI
+function calcStockAnnualizedROI(stockPrice, strike, expiry, premium = 0, wheelType = 'sell_put') {
+  if (!stockPrice || !strike || !expiry) return null;
+  
+  const today = new Date(); today.setHours(0,0,0,0);
+  const exp = new Date(expiry); exp.setHours(0,0,0,0);
+  const daysToExp = Math.ceil((exp - today) / (1000 * 60 * 60 * 24));
+  
+  if (daysToExp <= 0) return null;
+  
+  // 卖Put：年化ROI = (权利金 / 行权价) * (365 / 剩余天数)
+  // 买Call：年化ROI = (期权盈亏 / 正股价) * (365 / 剩余天数)
+  if (wheelType === 'sell_put') {
+    if (!premium) return null;
+    const returnRate = premium / strike;
+    const annualizedROI = returnRate * (365 / daysToExp) * 100;
+    return annualizedROI;
+  } else if (wheelType === 'leaps_call') {
+    // LEAPS Call：用期权盈亏相对于正股价计算
+    const optionPrice = premium; // 这里premium代表期权现价
+    if (!optionPrice) return null;
+    const returnRate = (optionPrice - (premium * 0.8)) / stockPrice; // 简化计算
+    const annualizedROI = returnRate * (365 / daysToExp) * 100;
+    return annualizedROI;
+  }
+  
+  return null;
+}
+
+function formatAnnualizedROI(roi) {
+  if (roi === null || roi === undefined) return '';
+  const absROI = Math.abs(roi);
+  let color = 'var(--text-dim)';
+  if (roi >= 50) color = '#00d68f'; // 绿色 - 高收益
+  else if (roi >= 30) color = '#4c9aff'; // 蓝色 - 中等收益
+  else if (roi >= 15) color = '#ffa502'; // 橙色 - 一般收益
+  else if (roi > 0) color = '#a78bfa'; // 紫色 - 低收益
+  else color = '#ff4757'; // 红色 - 亏损
+  
+  return '<span style="color:' + color + ';font-weight:600">年化' + roi.toFixed(1) + '%</span>';
+}
+
 function getStrategyById(id) {
   return (portfolio.strategies || []).find(s => s.id === id);
 }
@@ -152,6 +194,7 @@ function renderStrategies() {
             <div class="strategy-pct">${pct}%</div>
             ${s.id !== 'cash' ? `<div class="strategy-pnl ${pctClass(pnl)}">${fmtPct(pnl)}</div>` : ''}
           </div>
+          ${s.id !== 'cash' ? `<button class="btn-delete-strategy" onclick="event.stopPropagation(); confirmDeleteStrategy('${s.id}','${s.name.replace(/'/g, "\\'")}')" title="删除策略">🗑️</button>` : ''}
           <div class="strategy-chevron">▼</div>
         </div>
         <div class="strategy-bar"><div class="strategy-bar-fill" style="width: ${pct}%; background: ${s.color}"></div></div>
@@ -166,6 +209,7 @@ function renderStrategies() {
               ${positions.map(p => {
                 // Wheel 策略 - 期权格式
                 if (p.strategy === 'wheel') {
+                  const annualizedROI = p.wheel_type === 'sell_put' ? calcStockAnnualizedROI(p.stock_price, p.strike, p.expiry, p.premium, 'sell_put') : null;
                   return `
                     <div class="holding-item" onclick="event.stopPropagation()">
                       <div class="holding-symbol">${p.symbol}</div>
@@ -176,6 +220,7 @@ function renderStrategies() {
                           <span class="stock-price-tag">股价: <span class="${(p.stock_price || 0) > 0 ? 'green' : ''}">$${(p.stock_price || 0).toFixed(0)}</span></span>
                           <span>${p.contracts}张</span>
                           <span>Δ${p.delta || '-'}</span>
+                          ${annualizedROI !== null ? '<span>' + formatAnnualizedROI(annualizedROI) + '</span>' : ''}
                         </div>
                       </div>
                       <div class="holding-value">
@@ -247,7 +292,9 @@ function renderStrategies() {
             ` : `
               <div class="strategy-empty">
                 <p>暂无持仓</p>
-                <button class="btn btn-sm" onclick="event.stopPropagation()">📤 上传IBKR报告 或 ✏️ 手动添加</button>
+                <div class="add-form-inline" onclick="event.stopPropagation()" id="add-form-${s.id}">
+                  ${renderAddPositionForm(s.id)}
+                </div>
               </div>
             `}
           </div>
@@ -423,12 +470,28 @@ function addPositionToStrategy(stratId) {
     });
 }
 
+function showAddForm(stratId) {
+  const row = document.getElementById('add-row-' + stratId);
+  if (!row) return;
+  row.innerHTML = renderAddPositionForm(stratId, true);
+}
+
 function deletePosition(posId) {
   if (!confirm('确认删除此持仓？')) return;
   fetch(`/api/portfolio/position/${posId}`, { method: 'DELETE' })
     .then(r => r.json())
     .then(res => {
       if (res.success) { portfolio = res.portfolio; refreshAll(); showToast('已删除'); }
+    });
+}
+
+function confirmDeleteStrategy(stratId, stratName) {
+  if (!confirm(`确认删除策略「${stratName}」？\n\n注意：策略内的所有持仓也会被一起删除！`)) return;
+  fetch(`/api/portfolio/strategy/${stratId}`, { method: 'DELETE' })
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) { portfolio = res.portfolio; refreshAll(); showToast('策略已删除'); }
+      else { showToast('❌ 删除失败'); }
     });
 }
 
@@ -1337,6 +1400,49 @@ function downloadBackup() {
   setTimeout(() => {
     if (btn) { btn.textContent = '💾 备份数据'; btn.disabled = false; }
   }, 2000);
+}
+
+// === Backup Upload / Restore ===
+function uploadBackup() {
+  document.getElementById('backup-upload').click();
+}
+
+function handleBackupUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  if (!confirm(`确认恢复数据？\n\n将从「${file.name}」恢复，当前所有数据会被覆盖！`)) {
+    event.target.value = '';
+    return;
+  }
+  
+  const btn = document.querySelector('.btn-import');
+  if (btn) { btn.textContent = '⏳ 恢复中…'; btn.disabled = true; }
+  
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  fetch('/api/restore', {
+    method: 'POST',
+    body: formData
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      portfolio = res.portfolio;
+      refreshAll();
+      showToast('✅ 数据已恢复！');
+    } else {
+      showToast('❌ ' + (res.error || '恢复失败'));
+    }
+  })
+  .catch(err => {
+    showToast('❌ 上传失败: ' + err.message);
+  })
+  .finally(() => {
+    if (btn) { btn.textContent = '📤 恢复数据'; btn.disabled = false; }
+    event.target.value = '';
+  });
 }
 
 // === Refresh All ===

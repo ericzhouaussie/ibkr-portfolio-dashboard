@@ -278,6 +278,27 @@ body {
 
 .strategy-card.expanded .strategy-chevron { transform: rotate(180deg); }
 
+.btn-delete-strategy {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  padding: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.strategy-card:hover .btn-delete-strategy {
+  opacity: 0.5;
+}
+
+.btn-delete-strategy:hover {
+  opacity: 1 !important;
+  transform: scale(1.15);
+}
+
 /* Strategy mini-bar */
 .strategy-bar {
   height: 4px;
@@ -371,6 +392,33 @@ body {
 
 .strategy-empty button {
   margin-top: 8px;
+}
+
+/* Add form inline (空状态表单) */
+.add-form-inline {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  background: var(--bg2);
+  border-radius: 8px;
+  border: 1px dashed var(--border);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.add-form-inline input, .add-form-inline select {
+  background: var(--bg) !important;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 5px 8px;
+  font-size: 0.8rem;
+}
+
+.add-form-inline input:focus, .add-form-inline select:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 /* === Add position row === */

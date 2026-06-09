@@ -673,6 +673,16 @@ def add_strategy():
     save_portfolio(portfolio)
     return jsonify({"success": True, "portfolio": portfolio})
 
+@app.route("/api/portfolio/strategy/<strat_id>", methods=["DELETE"])
+def delete_strategy(strat_id):
+    portfolio = load_portfolio()
+    # 删除策略
+    portfolio["strategies"] = [s for s in portfolio["strategies"] if s["id"] != strat_id]
+    # 删除该策略下的所有持仓
+    portfolio["positions"] = [p for p in portfolio["positions"] if p.get("strategy") != strat_id]
+    save_portfolio(portfolio)
+    return jsonify({"success": True, "portfolio": portfolio})
+
 
 @app.route("/api/upload", methods=["POST"])
 def upload():
@@ -1065,6 +1075,63 @@ def backup_data():
         download_name=filename
     )
 
+
+@app.route("/api/restore", methods=["POST"])
+def restore_data():
+    """从备份 ZIP 恢复数据"""
+    import zipfile, io
+    
+    if "file" not in request.files:
+        return jsonify({"error": "没有文件"}), 400
+    
+    file = request.files["file"]
+    if not file.filename.endswith(".zip"):
+        return jsonify({"error": "请上传 .zip 备份文件"}), 400
+    
+    try:
+        # 读取文件内容到 BytesIO（解决 SpooledTemporaryFile 兼容性问题）
+        file_content = file.read()
+        zip_buffer = io.BytesIO(file_content)
+        zf = zipfile.ZipFile(zip_buffer)
+        names = zf.namelist()
+        
+        # 恢复 portfolio.json
+        if "portfolio.json" in names:
+            data = json.loads(zf.read("portfolio.json"))
+            save_portfolio(data)
+        else:
+            return jsonify({"error": "备份文件中缺少 portfolio.json"}), 400
+        
+        # 恢复 target_allocation.json
+        if "target_allocation.json" in names:
+            target = json.loads(zf.read("target_allocation.json"))
+            save_target_allocation(target)
+        
+        # 恢复 memory 文件
+        memory_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "memory")
+        for name in names:
+            if name.startswith("memory/") and not name.endswith("/"):
+                fname = os.path.basename(name)
+                if fname == "README.txt":
+                    continue
+                fp = os.path.join(memory_dir, fname)
+                os.makedirs(memory_dir, exist_ok=True)
+                with open(fp, "w", encoding="utf-8") as f:
+                    f.write(zf.read(name).decode("utf-8"))
+        
+        portfolio = load_portfolio()
+        return jsonify({"success": True, "portfolio": portfolio})
+    
+    except zipfile.BadZipFile:
+        return jsonify({"error": "无效的 ZIP 文件"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+def save_target_allocation(data):
+    """保存目标配置"""
+    with open(TARGET_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
 
 
 
