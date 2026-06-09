@@ -95,9 +95,26 @@
       "pnl_pct": 4.0,
       "status": "等待行权",
       "delta": -0.35
+    },
+    {
+      "id": "5de8d288",
+      "symbol": "NVDA",
+      "strategy": "leaps",
+      "notes": "",
+      "strike": 220.0,
+      "expiry": "2028-12-31",
+      "contracts": 1,
+      "quantity": 100,
+      "buy_price": 20.0,
+      "current_option_price": 9.0,
+      "stock_price": 190.0,
+      "market_value": 900.0,
+      "pnl": -1100.0,
+      "pnl_pct": -55.0,
+      "delta": 0.14
     }
   ],
-  "cash_base_usd": 171999.65,
+  "cash_base_usd": 169999.0,
   "cash_flows": [],
   "pnl_baselines": {}
 }
