@@ -75,9 +75,29 @@
       "pnl_pct": 800.0,
       "status": "等待行权",
       "delta": -0.25
+    },
+    {
+      "id": "db98d562",
+      "symbol": "META",
+      "strategy": "wheel",
+      "notes": "",
+      "wheel_type": "sell_put",
+      "strike": 500.0,
+      "expiry": "2026-12-31",
+      "premium": 20.0,
+      "contracts": 1,
+      "quantity": 100,
+      "stock_price": 550.0,
+      "cost_basis": 480.0,
+      "current_option_price": 0.0,
+      "market_value": 55000.0,
+      "pnl": 2000.0,
+      "pnl_pct": 4.0,
+      "status": "等待行权",
+      "delta": -0.35
     }
   ],
-  "cash_base_usd": 169999.65,
+  "cash_base_usd": 171999.65,
   "cash_flows": [],
   "pnl_baselines": {}
 }
