@@ -320,6 +320,7 @@
   window.__PORTFOLIO__ = {{ portfolio | tojson }};
   window.__TARGETS__ = {{ targets | tojson if targets else '[]' }};
 </script>
-<script src="/static/js/dashboard.js"></script>
+<!-- v2.1 策略类型通用化 -->
+<script src="/static/js/dashboard.js?v=20260611"></script>
 </body>
 </html>
