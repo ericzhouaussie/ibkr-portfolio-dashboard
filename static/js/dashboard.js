@@ -80,6 +80,14 @@ function getStrategyById(id) {
   return (portfolio.strategies || []).find(s => s.id === id);
 }
 
+function getStrategyType(stratId) {
+  const strat = getStrategyById(stratId);
+  if (strat && strat.type) return strat.type;
+  // 向后兼容：现有硬编码策略默认类型
+  if (stratId === 'wheel' || stratId === 'leaps') return 'option';
+  return 'stock';
+}
+
 function getPositionsForStrategy(stratId) {
   return (portfolio.positions || []).filter(p => p.strategy === stratId);
 }
@@ -194,7 +202,7 @@ function renderStrategies() {
             <div class="strategy-pct">${pct}%</div>
             ${s.id !== 'cash' ? `<div class="strategy-pnl ${pctClass(pnl)}">${fmtPct(pnl)}</div>` : ''}
           </div>
-          ${s.id !== 'cash' ? `<button class="btn-delete-strategy" onclick="event.stopPropagation(); confirmDeleteStrategy('${s.id}','${s.name.replace(/'/g, "\\'")}')" title="删除策略">🗑️</button>` : ''}
+          ${s.id !== 'cash' && s.id !== 'dca' && s.id !== 'wheel' && s.id !== 'leaps' ? `<button class="btn-delete-strategy" onclick="event.stopPropagation(); confirmDeleteStrategy('${s.id}','${s.name.replace(/'/g, "\\'")}')" title="删除策略">🗑️</button>` : ''}
           <div class="strategy-chevron">▼</div>
         </div>
         <div class="strategy-bar"><div class="strategy-bar-fill" style="width: ${pct}%; background: ${s.color}"></div></div>
@@ -207,24 +215,32 @@ function renderStrategies() {
               </div>
             ` : positions.length ? `
               ${positions.map(p => {
-                // Wheel 策略 - 期权格式
-                if (p.strategy === 'wheel') {
+                // 期权策略格式（根据策略类型）
+                if (getStrategyType(p.strategy) === 'option') {
+                  const isWheel = p.strategy === 'wheel';
                   const annualizedROI = p.wheel_type === 'sell_put' ? calcStockAnnualizedROI(p.stock_price, p.strike, p.expiry, p.premium, 'sell_put') : null;
+                  const tagHtml = isWheel
+                    ? `<span class="holding-tag ${p.wheel_type}">${p.wheel_type === 'sell_put' ? 'Sell Put' : p.wheel_type === 'covered_call' ? 'Covered Call' : '持有正股'}</span>`
+                    : `<span class="holding-tag leaps">${p.strategy === 'leaps' ? 'LEAPS Call' : '期权'}</span>`;
+                  const valLeft = isWheel
+                    ? `权利金: <span class="green">$${((p.premium || 0) * (p.contracts || 0) * 100).toFixed(0)}</span>`
+                    : `成本: $${(p.buy_price || 0).toFixed(0)}`;
+                  const extraInfo = annualizedROI !== null ? '<span>' + formatAnnualizedROI(annualizedROI) + '</span>' : '';
                   return `
                     <div class="holding-item" onclick="event.stopPropagation()">
                       <div class="holding-symbol">${p.symbol}</div>
                       <div class="holding-details">
-                        <div><span class="holding-tag ${p.wheel_type}">${p.wheel_type === 'sell_put' ? 'Sell Put' : p.wheel_type === 'covered_call' ? 'Covered Call' : '持有正股'}</span></div>
+                        <div>${tagHtml}</div>
                         <div class="holding-info-row">
                           <span>K${p.strike} · ${p.expiry} · ${daysToExpiry(p.expiry)}</span>
                           <span class="stock-price-tag">股价: <span class="${(p.stock_price || 0) > 0 ? 'green' : ''}">$${(p.stock_price || 0).toFixed(0)}</span></span>
                           <span>${p.contracts}张</span>
                           <span>Δ${p.delta || '-'}</span>
-                          ${annualizedROI !== null ? '<span>' + formatAnnualizedROI(annualizedROI) + '</span>' : ''}
+                          ${extraInfo}
                         </div>
                       </div>
                       <div class="holding-value">
-                        <div>权利金: <span class="green">$${((p.premium || 0) * (p.contracts || 0) * 100).toFixed(0)}</span></div>
+                        <div>${valLeft}</div>
                         <div>现价: $${(p.current_option_price || 0).toFixed(0)}</div>
                       </div>
                       <div class="holding-pnl ${pctClass(p.pnl)}">${fmtNum(p.pnl)} (${fmtPct(p.pnl_pct)})</div>
@@ -236,34 +252,7 @@ function renderStrategies() {
                     </div>
                   `;
                 }
-                // LEAPS 策略 - 期权格式
-                if (p.strategy === 'leaps') {
-                  return `
-                    <div class="holding-item" onclick="event.stopPropagation()">
-                      <div class="holding-symbol">${p.symbol}</div>
-                      <div class="holding-details">
-                        <div><span class="holding-tag leaps">LEAPS Call</span></div>
-                        <div class="holding-info-row">
-                          <span>K${p.strike} · ${p.expiry} · ${daysToExpiry(p.expiry)}</span>
-                          <span class="stock-price-tag">股价: <span class="${(p.stock_price || 0) > 0 ? 'green' : ''}">$${(p.stock_price || 0).toFixed(0)}</span></span>
-                          <span>${p.contracts}张</span>
-                          <span>Δ${p.delta || '-'}</span>
-                        </div>
-                      </div>
-                      <div class="holding-value">
-                        <div>成本: $${(p.buy_price || 0).toFixed(0)}</div>
-                        <div>现价: $${(p.current_option_price || 0).toFixed(0)}</div>
-                      </div>
-                      <div class="holding-pnl ${pctClass(p.pnl)}">${fmtNum(p.pnl)} (${fmtPct(p.pnl_pct)})</div>
-                      <div class="holding-actions">
-                        <button class="btn btn-sm btn-close" onclick="closePosition('${p.id}','${s.id}','${p.symbol}')">🔒 平仓</button>
-                        <button class="btn btn-sm" onclick="editPosition('${p.id}','${s.id}')">✏️</button>
-                        <button class="btn btn-sm btn-danger" onclick="deletePosition('${p.id}')">🗑️</button>
-                      </div>
-                    </div>
-                  `;
-                }
-                // 普通策略 (DCA, Swing) - 原始格式
+                // 正股策略格式
                 return `
                   <div class="holding-item" onclick="event.stopPropagation()">
                     <div class="holding-symbol">${p.symbol}</div>
@@ -320,14 +309,9 @@ function toggleStrategy(id) {
 
 // === Position Actions ===
 function renderAddPositionForm(stratId) {
-  if (stratId === 'wheel') {
+  if (getStrategyType(stratId) === 'option') {
     return `
       <input class="input-sym" id="add-sym-${stratId}" placeholder="AMZN" style="width:70px">
-      <select id="add-wheel-type-${stratId}" style="padding:5px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.8rem">
-        <option value="sell_put">Sell Put</option>
-        <option value="covered_call">Covered Call</option>
-        <option value="holding_stock">持有正股</option>
-      </select>
       <input class="input-strike" id="add-strike-${stratId}" type="number" step="any" placeholder="Strike" style="width:70px">
       <input class="input-expiry" id="add-expiry-${stratId}" type="date" style="width:120px">
       <input class="input-contracts" id="add-contracts-${stratId}" type="number" step="1" placeholder="合约" style="width:55px">
@@ -337,20 +321,7 @@ function renderAddPositionForm(stratId) {
       <button class="btn btn-sm btn-primary" onclick="addPositionToStrategy('${stratId}')">添加</button>
     `;
   }
-  if (stratId === 'leaps') {
-    return `
-      <input class="input-sym" id="add-sym-${stratId}" placeholder="NVDA" style="width:70px">
-      <input class="input-strike" id="add-strike-${stratId}" type="number" step="any" placeholder="Strike" style="width:70px">
-      <input class="input-expiry" id="add-expiry-${stratId}" type="date" style="width:120px">
-      <input class="input-contracts" id="add-contracts-${stratId}" type="number" step="1" placeholder="合约" style="width:55px">
-      <input class="input-buy-price" id="add-buy-price-${stratId}" type="number" step="any" placeholder="买入价" style="width:65px">
-      <input class="input-opt-price" id="add-opt-price-${stratId}" type="number" step="any" placeholder="现价" style="width:65px">
-      <input class="input-delta" id="add-delta-${stratId}" type="number" step="0.01" placeholder="Delta" style="width:65px">
-      <input class="input-stock-price" id="add-stock-price-${stratId}" type="number" step="any" placeholder="股价" style="width:65px">
-      <button class="btn btn-sm btn-primary" onclick="addPositionToStrategy('${stratId}')">添加</button>
-    `;
-  }
-  // 普通策略 (DCA, Swing)
+  // 正股策略 (DCA, Swing)
   return `
     <input class="input-sym" id="add-sym-${stratId}" placeholder="AAPL" style="width:70px">
     <input class="input-qty" id="add-qty-${stratId}" type="number" step="any" placeholder="数量" style="width:60px">
@@ -364,8 +335,8 @@ function addPositionToStrategy(stratId) {
   const sym = document.getElementById(`add-sym-${stratId}`).value.toUpperCase();
   if (!sym) { showToast('请填写标的代码', 'error'); return; }
 
-  if (stratId === 'wheel') {
-    const wheelType = document.getElementById(`add-wheel-type-${stratId}`).value;
+  if (getStrategyType(stratId) === 'option') {
+    // 期权策略（Wheel/LEAPS/自定义期权仓）
     const strike = parseFloat(document.getElementById(`add-strike-${stratId}`).value);
     const expiry = document.getElementById(`add-expiry-${stratId}`).value;
     const contracts = parseInt(document.getElementById(`add-contracts-${stratId}`).value) || 1;
@@ -375,56 +346,7 @@ function addPositionToStrategy(stratId) {
     
     if (!strike || !expiry) { showToast('请填写完整信息', 'error'); return; }
     
-    const costBasis = wheelType === 'sell_put' ? strike - premium : stockPrice;
     const quantity = contracts * 100;
-    const marketValue = quantity * stockPrice;
-    const pnl = premium * contracts * 100;
-    const pnlPct = premium > 0 ? (pnl / (strike * quantity)) * 100 : 0;
-    
-    fetch('/api/portfolio/position', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        symbol: sym,
-        strategy: stratId,
-        wheel_type: wheelType,
-        strike: strike,
-        expiry: expiry,
-        premium: premium,
-        contracts: contracts,
-        quantity: quantity,
-        stock_price: stockPrice,
-        cost_basis: costBasis,
-        current_option_price: 0,
-        market_value: marketValue,
-        pnl: pnl,
-        pnl_pct: pnlPct,
-        status: wheelType === 'sell_put' ? '等待行权' : '卖Covered Call',
-        delta: delta,
-      }),
-    })
-      .then(r => r.json())
-      .then(res => {
-        if (res.success) { portfolio = res.portfolio; refreshAll(); showToast('✅ 已添加 ' + sym); }
-      });
-    return;
-  }
-  
-  if (stratId === 'leaps') {
-    const strike = parseFloat(document.getElementById(`add-strike-${stratId}`).value);
-    const expiry = document.getElementById(`add-expiry-${stratId}`).value;
-    const contracts = parseInt(document.getElementById(`add-contracts-${stratId}`).value) || 1;
-    const buyPrice = parseFloat(document.getElementById(`add-buy-price-${stratId}`).value);
-    const optPrice = parseFloat(document.getElementById(`add-opt-price-${stratId}`).value) || buyPrice;
-    const delta = parseFloat(document.getElementById(`add-delta-${stratId}`).value) || 0;
-    const stockPrice = parseFloat(document.getElementById(`add-stock-price-${stratId}`).value) || 0;
-    
-    if (!strike || !expiry || isNaN(buyPrice)) { showToast('请填写完整信息', 'error'); return; }
-    
-    const quantity = contracts * 100;
-    const marketValue = contracts * 100 * optPrice;
-    const pnl = (optPrice - buyPrice) * contracts * 100;
-    const pnlPct = ((optPrice / buyPrice) - 1) * 100;
     
     fetch('/api/portfolio/position', {
       method: 'POST',
@@ -436,12 +358,12 @@ function addPositionToStrategy(stratId) {
         expiry: expiry,
         contracts: contracts,
         quantity: quantity,
-        buy_price: buyPrice,
-        current_option_price: optPrice,
+        buy_price: premium,
+        current_option_price: premium,
         stock_price: stockPrice,
-        market_value: marketValue,
-        pnl: pnl,
-        pnl_pct: pnlPct,
+        market_value: quantity * stockPrice,
+        pnl: 0,
+        pnl_pct: 0,
         delta: delta,
       }),
     })
@@ -452,7 +374,7 @@ function addPositionToStrategy(stratId) {
     return;
   }
   
-  // 普通策略 (DCA, Swing)
+  // 正股策略 (DCA, Swing)
   const qty = parseFloat(document.getElementById(`add-qty-${stratId}`).value);
   const avg = parseFloat(document.getElementById(`add-price-${stratId}`).value);
   const curr = parseFloat(document.getElementById(`add-curr-${stratId}`).value) || avg;
@@ -498,7 +420,7 @@ function confirmDeleteStrategy(stratId, stratName) {
 function editPosition(posId, stratId) {
   const p = portfolio.positions.find(x => x.id === posId);
   if (!p) return;
-  if (p.strategy === 'wheel' || p.strategy === 'leaps') {
+  if (getStrategyType(p.strategy) === 'option') {
     // 期权：输入期权当前价
     const optLabel = p.strategy === 'wheel' ? '期权当前价(权利金现价)' : '期权当前价';
     const currentOpt = p.current_option_price || 0;
@@ -546,6 +468,7 @@ function handleAddStrategy(e) {
       icon: document.getElementById('new-strat-icon').value || '📁',
       color: document.getElementById('new-strat-color').value,
       desc: document.getElementById('new-strat-desc').value,
+      type: document.getElementById('new-strat-type').value,
     }),
   })
     .then(r => r.json())
