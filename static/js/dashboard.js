@@ -282,12 +282,12 @@ function renderStrategies() {
     const totalCost = getStrategyTotalCost(s.id);
     const realizedProfit = getStrategyRealizedProfit(s.id);
     const weightedReturn = totalCost > 0 ? (pnl / totalCost * 100) : (value > 0 ? 0 : 0);
-    const isFixed = ['cash', 'dca', 'wheel', 'leaps'].includes(s.id);
+    const isDraggable = !['cash', 'dca', 'wheel', 'leaps'].includes(s.id);
     const hasAlert = hasProfitAlert(s.id);
     const stratPctTag = pct + '%';
-    const dragAttr = isFixed ? '' : `draggable="true" ondragstart="onDragStart(event,'${s.id}')" ondragover="onDragOver(event)" ondrop="onDrop(event,'${s.id}')" ondragend="onDragEnd(event)"`;
-    const dragStyle = isFixed ? '' : 'cursor:grab;';
-    const clickAttr = isFixed ? '' : `onclick="toggleStrategy('${s.id}')"`;;
+    const dragAttr = isDraggable ? `draggable="true" ondragstart="onDragStart(event,'${s.id}')" ondragover="onDragOver(event)" ondrop="onDrop(event,'${s.id}')" ondragend="onDragEnd(event)"` : '';
+    const dragStyle = isDraggable ? 'cursor:grab;' : '';
+    const clickAttr = s.id === 'cash' ? '' : `onclick="toggleStrategy('${s.id}')"`;
 
     html += `
       <div class="strategy-card" id="sc-${s.id}" ${dragAttr} ${clickAttr} style="${dragStyle}">
@@ -311,7 +311,7 @@ function renderStrategies() {
             ${s.id !== 'cash' ? `<div class="strategy-pnl ${pctClass(pnl)}">${fmtPct(pnl)}</div>` : ''}
           </div>
           ${s.id !== 'cash' && s.id !== 'dca' && s.id !== 'wheel' && s.id !== 'leaps' ? `<button class="btn-delete-strategy" onclick="event.stopPropagation(); confirmDeleteStrategy('${s.id}','${s.name.replace(/'/g, "\\'")}')" title="删除策略">🗑️</button>` : ''}
-          ${!isFixed ? `<div class="strategy-drag-handle" style="color:var(--text-dim);font-size:1rem;padding:0 6px;cursor:grab" title="拖动排序">⋮⋮</div>` : ''}
+          ${isDraggable ? `<div class="strategy-drag-handle" style="color:var(--text-dim);font-size:1rem;padding:0 6px;cursor:grab" title="拖动排序">⋮⋮</div>` : ''}
           <div class="strategy-chevron">▼</div>
         </div>
         <div class="strategy-bar"><div class="strategy-bar-fill" style="width: ${pct}%; background: ${s.color}"></div></div>
