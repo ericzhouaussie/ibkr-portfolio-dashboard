@@ -991,6 +991,98 @@ def clear_history():
     return jsonify({"success": True})
 
 
+@app.route("/api/export/history")
+def export_history():
+    """导出交易记录为 Excel 文件"""
+    portfolio = load_portfolio()
+    history = portfolio.get("history", [])
+
+    if not history:
+        return "没有交易记录可导出", 400
+
+    rows = []
+    for h in history:
+        action = h.get("action", "")
+        is_option = h.get("strike") is not None
+
+        row = {
+            "日期": h.get("date", ""),
+            "标的": h.get("symbol", ""),
+            "操作": action,
+            "数量": h.get("quantity", ""),
+            "单价": h.get("price", ""),
+            "盈亏金额": h.get("pnl", 0),
+            "策略": h.get("strategy", ""),
+            "佣金": h.get("commission", 0),
+            "备注": h.get("note", ""),
+        }
+
+        if is_option:
+            row["类型"] = h.get("wheel_type", h.get("option_type", ""))
+            row["行权价"] = h.get("strike", "")
+            row["到期日"] = h.get("expiry", "")
+            row["合约数"] = h.get("contracts", "")
+            if action == "CLOSE" or "close" in str(h.get("status", "")).lower():
+                row["操作"] = "平仓"
+                row["开仓价"] = h.get("open_price", h.get("open_premium", ""))
+                row["平仓价"] = h.get("close_price", "")
+            elif action == "SELL":
+                row["权利金"] = h.get("premium", h.get("open_premium", ""))
+            else:
+                row["权利金"] = h.get("premium", h.get("buy_price", ""))
+            row["Delta"] = h.get("delta", "")
+            row["盈亏%"] = h.get("pnl_pct", "")
+        else:
+            row["成本价"] = h.get("cost_price", "")
+            row["费用"] = h.get("fees", 0)
+
+        rows.append(row)
+
+    df = pd.DataFrame(rows)
+
+    from io import BytesIO
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="交易记录")
+        ws = writer.sheets["交易记录"]
+
+        # 样式：标题行
+        header_fill = PatternFill(start_color="1e3a5f", end_color="1e3a5f", fill_type="solid")
+        header_font = Font(color="FFFFFF", bold=True, size=11)
+        for cell in ws[1]:
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+
+        # 列宽自适应
+        for col_idx, col in enumerate(df.columns, 1):
+            col_letter = get_column_letter(col_idx)
+            max_len = max(df[col].astype(str).map(len).max(), len(str(col))) + 2
+            ws.column_dimensions[col_letter].width = min(max_len, 30)
+
+        # 数据行样式 + 正负色
+        for row in ws.iter_rows(min_row=2):
+            for cell in row:
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+                col_name = df.columns[cell.column - 1]
+                if col_name == "盈亏金额" and isinstance(cell.value, (int, float)):
+                    if cell.value > 0:
+                        cell.font = Font(color="16a34a", bold=True)
+                    elif cell.value < 0:
+                        cell.font = Font(color="dc2626", bold=True)
+
+        ws.freeze_panes = "A2"
+
+    output.seek(0)
+    from flask import send_file
+    filename = f"IBKR交易记录_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    return send_file(output, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    as_attachment=True, download_name=filename)
+
+
 @app.route("/api/history/<hist_id>", methods=["DELETE"])
 def delete_history_item(hist_id):
     """删除单条交易记录，并级联回滚相关影响（现金、已实现盈利、持仓）"""

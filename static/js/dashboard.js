@@ -1472,6 +1472,15 @@ function deleteHistoryItem(histId) {
 }
 
 
+function exportHistory() {
+  const link = document.createElement('a');
+  link.href = '/api/export/history';
+  link.download = '';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
 function clearHistory() {
   if (!confirm('确认清空所有历史记录？')) return;
   
