@@ -62,26 +62,6 @@
   ],
   "positions": [
     {
-      "id": "db98d562",
-      "symbol": "META",
-      "strategy": "wheel",
-      "notes": "",
-      "wheel_type": "sell_put",
-      "strike": 500.0,
-      "expiry": "2026-12-31",
-      "premium": 20.0,
-      "contracts": 1,
-      "quantity": 100,
-      "stock_price": 550.0,
-      "cost_basis": 480.0,
-      "current_option_price": 0.0,
-      "market_value": 55000.0,
-      "pnl": 2000.0,
-      "pnl_pct": 4.0,
-      "status": "等待行权",
-      "delta": -0.35
-    },
-    {
       "id": "5ef97e17",
       "symbol": "META",
       "strategy": "wheel",
@@ -100,7 +80,8 @@
       "pnl": 0,
       "pnl_pct": 0,
       "wheel_type": "sell_put",
-      "status": "等待行权"
+      "status": "等待行权",
+      "open_date": ""
     },
     {
       "id": "c085642e",
@@ -121,7 +102,8 @@
       "pnl": -300.0,
       "pnl_pct": -150.0,
       "wheel_type": "sell_put",
-      "status": "等待行权"
+      "status": "等待行权",
+      "open_date": ""
     },
     {
       "id": "4a26fa98",
@@ -142,10 +124,11 @@
       "pnl": -100.0,
       "pnl_pct": -100.0,
       "wheel_type": "sell_put",
-      "status": "等待行权"
+      "status": "等待行权",
+      "open_date": ""
     }
   ],
-  "cash_base_usd": 237477.25,
+  "cash_base_usd": 237481.6,
   "cash_flows": [],
   "pnl_baselines": {},
   "history": [
@@ -189,11 +172,32 @@
       "total_cost": 0.65,
       "status": "已平仓",
       "notes": ""
+    },
+    {
+      "id": "h_3a7b7b86",
+      "symbol": "META",
+      "strategy": "wheel",
+      "wheel_type": "sell_put",
+      "strike": 500.0,
+      "expiry": "2026-12-31",
+      "contracts": 1,
+      "open_premium": 20.0,
+      "close_price": 0.15,
+      "open_delta": -0.35,
+      "open_date": "",
+      "close_date": "2026-06-14",
+      "pnl": 1985.0,
+      "pnl_pct": 13233.33,
+      "commission": 0.65,
+      "fees": 0,
+      "total_cost": 0.65,
+      "status": "已平仓",
+      "notes": ""
     }
   ],
   "realized_profits": {
     "dca": 62000.0,
-    "wheel": 199985.0,
+    "wheel": 201970.0,
     "leaps": 3000.0
   }
 }
