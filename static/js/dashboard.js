@@ -217,13 +217,17 @@ function renderStrategies() {
               ${positions.map(p => {
                 // 期权策略格式（根据策略类型）
                 if (getStrategyType(p.strategy) === 'option') {
-                  const isWheel = p.strategy === 'wheel';
+                  const isSold = (p.contracts || 0) < 0;
+                  const absContracts = Math.abs(p.contracts || 0);
+                  const optType = p.option_type || 'put';
+                  const isWheel = p.wheel_type === 'sell_put' || p.wheel_type === 'sell_call';
                   const annualizedROI = p.wheel_type === 'sell_put' ? calcStockAnnualizedROI(p.stock_price, p.strike, p.expiry, p.premium, 'sell_put') : null;
                   const tagHtml = isWheel
-                    ? `<span class="holding-tag ${p.wheel_type}">${p.wheel_type === 'sell_put' ? 'Sell Put' : p.wheel_type === 'covered_call' ? 'Covered Call' : '持有正股'}</span>`
-                    : `<span class="holding-tag leaps">${p.strategy === 'leaps' ? 'LEAPS Call' : '期权'}</span>`;
-                  const valLeft = isWheel
-                    ? `权利金: <span class="green">$${((p.premium || 0) * (p.contracts || 0) * 100).toFixed(0)}</span>`
+                    ? `<span class="holding-tag ${p.wheel_type}">${p.wheel_type === 'sell_put' ? 'Sell Put' : p.wheel_type === 'sell_call' ? 'Sell Call' : 'Covered Call'}</span>`
+                    : `<span class="holding-tag leaps">${isSold ? 'Sell ' + optType.charAt(0).toUpperCase() + optType.slice(1) : optType.charAt(0).toUpperCase() + optType.slice(1)} ${isSold ? '(空头)' : '(多头)'}</span>`;
+                  const premiumTotal = (p.premium || 0) * absContracts * 100;
+                  const valLeft = isSold
+                    ? `权利金: <span class="green">$${premiumTotal.toFixed(0)}</span>`
                     : `成本: $${(p.buy_price || 0).toFixed(0)}`;
                   const extraInfo = annualizedROI !== null ? '<span>' + formatAnnualizedROI(annualizedROI) + '</span>' : '';
                   return `
@@ -234,7 +238,7 @@ function renderStrategies() {
                         <div class="holding-info-row">
                           <span>K${p.strike} · ${p.expiry} · ${daysToExpiry(p.expiry)}</span>
                           <span class="stock-price-tag">股价: <span class="${(p.stock_price || 0) > 0 ? 'green' : ''}">$${(p.stock_price || 0).toFixed(0)}</span></span>
-                          <span>${p.contracts}张</span>
+                          <span>${absContracts}${isSold ? '张(卖)' : '张(买)'}</span>
                           <span>Δ${p.delta || '-'}</span>
                           ${extraInfo}
                         </div>
@@ -312,10 +316,14 @@ function renderAddPositionForm(stratId) {
   if (getStrategyType(stratId) === 'option') {
     return `
       <input class="input-sym" id="add-sym-${stratId}" placeholder="AMZN" style="width:70px">
+      <select class="input-option-type" id="add-option-type-${stratId}" style="width:65px;background:#0f172a;color:#e8eaf0;border:1px solid #1e2235;border-radius:6px;padding:6px 4px;font-size:12px">
+        <option value="put">Put</option>
+        <option value="call">Call</option>
+      </select>
       <input class="input-strike" id="add-strike-${stratId}" type="number" step="any" placeholder="Strike" style="width:70px">
       <input class="input-expiry" id="add-expiry-${stratId}" type="date" style="width:120px">
-      <input class="input-contracts" id="add-contracts-${stratId}" type="number" step="1" placeholder="合约" style="width:55px">
-      <input class="input-premium" id="add-premium-${stratId}" type="number" step="any" placeholder="权利金" style="width:65px">
+      <input class="input-contracts" id="add-contracts-${stratId}" type="number" step="1" placeholder="合约(负=卖)" style="width:85px">
+      <input class="input-premium" id="add-premium-${stratId}" type="number" step="any" placeholder="权利金/张" style="width:80px">
       <input class="input-delta" id="add-delta-${stratId}" type="number" step="0.01" placeholder="Delta" style="width:65px">
       <input class="input-stock-price" id="add-stock-price-${stratId}" type="number" step="any" placeholder="股价" style="width:65px">
       <button class="btn btn-sm btn-primary" onclick="addPositionToStrategy('${stratId}')">添加</button>
@@ -341,6 +349,7 @@ function addPositionToStrategy(stratId) {
     const expiry = document.getElementById(`add-expiry-${stratId}`).value;
     const contracts = parseInt(document.getElementById(`add-contracts-${stratId}`).value) || 1;
     const premium = parseFloat(document.getElementById(`add-premium-${stratId}`).value) || 0;
+    const optionType = document.getElementById(`add-option-type-${stratId}`).value;
     const delta = parseFloat(document.getElementById(`add-delta-${stratId}`).value) || 0;
     const stockPrice = parseFloat(document.getElementById(`add-stock-price-${stratId}`).value) || 0;
     
@@ -356,12 +365,14 @@ function addPositionToStrategy(stratId) {
         strategy: stratId,
         strike: strike,
         expiry: expiry,
+        option_type: optionType,
         contracts: contracts,
-        quantity: quantity,
+        quantity: contracts * 100,
+        premium: premium,
         buy_price: premium,
         current_option_price: premium,
         stock_price: stockPrice,
-        market_value: quantity * stockPrice,
+        market_value: 0,
         pnl: 0,
         pnl_pct: 0,
         delta: delta,
