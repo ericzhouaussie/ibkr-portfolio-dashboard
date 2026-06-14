@@ -140,11 +140,11 @@
       "stock_price": 195.0,
       "premium": 15.0,
       "buy_price": 15.0,
-      "current_option_price": 15.0,
+      "current_option_price": 22.0,
       "delta": 0.65,
-      "market_value": 4500.0,
-      "pnl": 0,
-      "pnl_pct": 0,
+      "market_value": 6600.0,
+      "pnl": 2100.0,
+      "pnl_pct": 46.67,
       "wheel_type": "leaps_long"
     }
   ],
