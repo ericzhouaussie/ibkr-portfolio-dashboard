@@ -104,6 +104,20 @@ function getStrategyPnl(stratId) {
   return getPositionsForStrategy(stratId).reduce((s, p) => s + p.pnl, 0);
 }
 
+// 期权策略潜在被行权金额（仅卖出期权）
+function getStrategyPotentialAssignment(stratId) {
+  if (stratId === 'cash') return 0;
+  const positions = getPositionsForStrategy(stratId);
+  if (!positions.some(p => (p.contracts || 0) < 0)) return 0;
+  return positions.reduce((s, p) => {
+    if ((p.contracts || 0) < 0) {
+      const absC = Math.abs(p.contracts || 0);
+      return s + (p.strike || 0) * 100 * absC;
+    }
+    return s;
+  }, 0);
+}
+
 function getTotalValue() {
   // 总资产 = 各策略持仓市值之和 + 现金基础(cash_base_usd)
   // 注意：不再重复加 portfolio.cash，cash 策略已通过 getStrategyValue('cash') 计入
@@ -282,6 +296,7 @@ function renderStrategies() {
     const totalCost = getStrategyTotalCost(s.id);
     const realizedProfit = getStrategyRealizedProfit(s.id);
     const weightedReturn = totalCost > 0 ? (pnl / totalCost * 100) : (value > 0 ? 0 : 0);
+    const potentialAssignment = getStrategyPotentialAssignment(s.id);
     const isDraggable = !['cash', 'dca', 'wheel', 'leaps'].includes(s.id);
     const hasAlert = hasProfitAlert(s.id);
     const stratPctTag = pct + '%';
@@ -302,6 +317,7 @@ function renderStrategies() {
                 <span>占比: <b style="color:var(--text)">${stratPctTag}</b></span>
                 ${totalCost > 0 ? `<span>加权回报: <b class="${pctClass(weightedReturn)}">${fmtPct(weightedReturn)}</b></span>` : ''}
                 ${realizedProfit !== 0 ? `<span>已实现盈利: <b class="${pctClass(realizedProfit)}">${fmtNum(realizedProfit)}</b></span>` : ''}
+                ${potentialAssignment > 0 ? `<span>潜在被行权金额: <b style="color:#f59e0b">${fmtNum(potentialAssignment)}</b></span>` : ''}
               </div>
             ` : ''}
           </div>
@@ -346,7 +362,7 @@ function renderStrategies() {
                         <div>${tagHtml}</div>
                         <div class="holding-info-row">
                           <span>K${p.strike} · ${p.expiry} · ${daysToExpiry(p.expiry)}</span>
-                          <span class="stock-price-tag">股价: <span class="${(p.stock_price || 0) > 0 ? 'green' : ''}">$${(p.stock_price || 0).toFixed(0)}</span></span>
+                          <span class="stock-price-tag">当前价: <span class="${(p.stock_price || 0) > 0 ? 'green' : ''}">$${(p.stock_price || 0).toFixed(0)}</span></span>
                           <span>${absContracts}${isSold ? '张(卖)' : '张(买)'}</span>
                           <span>Δ${p.delta || '-'}</span>
                           ${extraInfo}
@@ -354,7 +370,7 @@ function renderStrategies() {
                       </div>
                       <div class="holding-value">
                         <div>${valLeft}</div>
-                        <div>期权现价: $${(p.current_option_price || 0).toFixed(0)}</div>
+                        <div>期权当前价: $${(p.current_option_price || 0).toFixed(0)}</div>
                       </div>
                       <div class="holding-pnl ${pctClass(p.pnl)}">${fmtNum(p.pnl)} (${fmtPct(p.pnl_pct)})</div>
                       <div class="holding-actions">
