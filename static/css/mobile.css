@@ -1,0 +1,328 @@
+/* ===== IBKR Portfolio Dashboard v2 - Strategy-based ===== */
+
+:root {
+  --bg: #0a0c13;
+  --bg2: #10131c;
+  --card: #151823;
+  --card-hover: #1a1e2e;
+  --border: #1e2235;
+  --border-light: #2a2f45;
+  --text: #e8eaf0;
+  --text-dim: #6b7194;
+  --text-muted: #4a4f6a;
+  --green: #00d68f;
+  --green-dim: rgba(0, 214, 143, 0.15);
+  --red: #ff4757;
+  --red-dim: rgba(255, 71, 87, 0.15);
+  --blue: #4c9aff;
+  --purple: #a78bfa;
+  --orange: #ffa502;
+  --accent: #7c5cfc;
+  --accent-dim: rgba(124, 92, 252, 0.15);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { font-size: 14px; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 12px;
+}
+
+/* === Header === */
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0 12px;
+}
+
+.header-left h1 {
+  font-size: 1.2rem;
+}
+
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Buttons */
+.btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Challenge Banner */
+.challenge-banner {
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+/* Stats Row */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.stat-card {
+  padding: 10px;
+}
+
+.stat-card .value {
+  font-size: 1.1rem;
+}
+
+/* Main Grid - Mobile First */
+.main-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.main-col {
+  min-width: 0;
+}
+
+/* Strategy Cards */
+.strategy-card {
+  margin-bottom: 10px;
+}
+
+.card-header {
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.card-actions {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+/* Holdings */
+.holding-item {
+  padding: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.holding-main {
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.holding-meta {
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+/* Charts */
+.chart-card {
+  padding: 10px;
+}
+
+.chart {
+  height: 220px;
+}
+
+/* Forms */
+.form-group {
+  margin-bottom: 10px;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 0.9rem;
+}
+
+/* Modals */
+.modal {
+  width: 95%;
+  max-width: 420px;
+  max-height: 85vh;
+  padding: 14px;
+  margin: 10px;
+  overflow-y: auto;
+}
+
+.modal h3 {
+  font-size: 1rem;
+}
+
+.modal-actions {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modal-actions .btn {
+  width: 100%;
+}
+
+/* Tables */
+table {
+  font-size: 0.85rem;
+}
+
+th, td {
+  padding: 6px 8px;
+}
+
+/* Desktop (> 768px) */
+@media (min-width: 769px) {
+  .container {
+    padding: 24px;
+  }
+  
+  .header {
+    flex-direction: row;
+    align-items: center;
+    padding: 12px 0 20px;
+  }
+  
+  .header-left h1 {
+    font-size: 1.35rem;
+  }
+  
+  .header-actions {
+    gap: 8px;
+  }
+  
+  .btn {
+    padding: 8px 14px;
+    font-size: 0.9rem;
+  }
+  
+  .stats-row {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  
+  .stat-card {
+    padding: 14px 16px;
+  }
+  
+  .stat-card .value {
+    font-size: 1.4rem;
+  }
+  
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1.3fr 0.7fr;
+    gap: 20px;
+  }
+  
+  .strategy-card {
+    margin-bottom: 14px;
+  }
+  
+  .card-header {
+    flex-direction: row;
+    align-items: center;
+    gap: initial;
+  }
+  
+  .card-actions {
+    width: auto;
+    justify-content: flex-end;
+  }
+  
+  .holding-item {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+  }
+  
+  .holding-main {
+    flex-direction: row;
+    width: auto;
+    gap: 8px;
+  }
+  
+  .holding-meta {
+    flex-direction: row;
+    gap: 12px;
+    width: auto;
+  }
+  
+  .chart {
+    height: 280px;
+  }
+  
+  .modal {
+    width: 460px;
+    max-height: 80vh;
+    padding: 20px;
+    margin: auto;
+  }
+  
+  .modal h3 {
+    font-size: 1.1rem;
+  }
+  
+  .modal-actions {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+  
+  .modal-actions .btn {
+    width: auto;
+  }
+  
+  table {
+    font-size: 0.9rem;
+  }
+  
+  th, td {
+    padding: 10px 14px;
+  }
+}
+
+/* Safe area for iOS */
+@supports (padding: max(0px)) {
+  .container {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  
+  @media (min-width: 769px) {
+    .container {
+      padding-left: max(24px, env(safe-area-inset-left));
+      padding-right: max(24px, env(safe-area-inset-right));
+      padding-bottom: max(24px, env(safe-area-inset-bottom));
+    }
+  }
+}

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>IBKR Dashboard Icon Generator</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #1a1a2e; color: #fff; }
+    canvas { border: 1px solid #333; margin: 10px; }
+    .icon-container { display: flex; flex-wrap: wrap; gap: 10px; }
+    a { color: #3b82f6; margin: 5px; }
+  </style>
+</head>
+<body>
+  <h1>IBKR Dashboard PWA Icons</h1>
+  <p>Click each icon to download:</p>
+  <div class="icon-container" id="icons"></div>
+  
+  <script>
+    const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+    
+    function drawIcon(ctx, size) {
+      const scale = size / 512;
+      
+      // Background - dark blue gradient
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, '#1e3a5f');
+      gradient.addColorStop(1, '#0f172a');
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.roundRect(0, 0, size, size, size * 0.2);
+      ctx.fill();
+      
+      // Chart bars
+      const barColors = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444'];
+      const barWidths = [0.12, 0.18, 0.14, 0.16];
+      const barHeights = [0.25, 0.45, 0.35, 0.55];
+      const startX = 0.18;
+      const startY = 0.65;
+      const gap = 0.05;
+      
+      let x = startX;
+      barHeights.forEach((h, i) => {
+        ctx.fillStyle = barColors[i];
+        const bw = barWidths[i] * size;
+        const bh = h * size;
+        const bx = x * size;
+        const by = (startY - h) * size;
+        ctx.beginPath();
+        ctx.roundRect(bx, by, bw, bh, size * 0.02);
+        ctx.fill();
+        x += barWidths[i] + gap;
+      });
+      
+      // Dollar sign
+      ctx.fillStyle = '#fff';
+      ctx.font = `bold ${0.35 * size}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('$', 0.72 * size, 0.35 * size);
+      
+      // Arrow up
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      ctx.moveTo(0.72 * size, 0.5 * size);
+      ctx.lineTo(0.78 * size, 0.58 * size);
+      ctx.lineTo(0.66 * size, 0.58 * size);
+      ctx.closePath();
+      ctx.fill();
+    }
+    
+    sizes.forEach(size => {
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      drawIcon(ctx, size);
+      
+      const container = document.createElement('div');
+      container.innerHTML = `<p>${size}x${size}</p>`;
+      
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL('image/png');
+      link.download = `icon-${size}.png`;
+      link.textContent = 'Download';
+      
+      document.getElementById('icons').appendChild(canvas);
+      document.getElementById('icons').appendChild(link);
+      document.getElementById('icons').appendChild(container);
+    });
+  </script>
+</body>
+</html>
