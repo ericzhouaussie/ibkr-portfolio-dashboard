@@ -50,6 +50,14 @@
       "icon": "💵",
       "color": "#3b82f6",
       "desc": "现金储备，等待机会"
+    },
+    {
+      "id": "d5a63669",
+      "name": "1",
+      "icon": "🚗",
+      "color": "#8b8d9a",
+      "desc": "",
+      "type": "stock"
     }
   ],
   "positions": [
