@@ -22,19 +22,19 @@
       "desc": "长期期权（到期1年+）看多策略"
     },
     {
+      "id": "swing",
+      "name": "波段仓 (Swing)",
+      "icon": "⚡",
+      "color": "#f59e0b",
+      "desc": "短线波段交易"
+    },
+    {
       "id": "cc42fbe4",
       "name": "1",
       "icon": "📁",
       "color": "#8b8d9a",
       "desc": "",
       "type": "stock"
-    },
-    {
-      "id": "swing",
-      "name": "波段仓 (Swing)",
-      "icon": "⚡",
-      "color": "#f59e0b",
-      "desc": "短线波段交易"
     },
     {
       "id": "cash",
