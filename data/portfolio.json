@@ -37,14 +37,6 @@
       "type": "option"
     },
     {
-      "id": "cc42fbe4",
-      "name": "1",
-      "icon": "📁",
-      "color": "#8b8d9a",
-      "desc": "",
-      "type": "stock"
-    },
-    {
       "id": "cash",
       "name": "现金仓",
       "icon": "💵",
