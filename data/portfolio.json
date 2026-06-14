@@ -107,27 +107,6 @@
       "delta": 0.14
     },
     {
-      "id": "0b5f9fc5",
-      "symbol": "SPY",
-      "strategy": "wheel",
-      "notes": "",
-      "strike": 500.0,
-      "expiry": "2026-07-17",
-      "option_type": "put",
-      "contracts": -2,
-      "quantity": -200,
-      "stock_price": 510.0,
-      "premium": 3.5,
-      "buy_price": 3.5,
-      "current_option_price": 5.0,
-      "delta": -0.3,
-      "market_value": 1000.0,
-      "pnl": -300.0,
-      "pnl_pct": -42.86,
-      "wheel_type": "sell_put",
-      "status": "等待行权"
-    },
-    {
       "id": "90fe83b5",
       "symbol": "AAPL",
       "strategy": "leaps",
