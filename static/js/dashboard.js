@@ -257,6 +257,7 @@ function onDragEnd(e) {
 
 function renderStrategies() {
   const container = document.getElementById('strategy-list');
+  const strategies = portfolio.strategies || [];
   const total = getTotalValue();
   let html = '';
 
