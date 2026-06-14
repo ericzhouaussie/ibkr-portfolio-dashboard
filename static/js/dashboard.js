@@ -287,9 +287,10 @@ function renderStrategies() {
     const stratPctTag = pct + '%';
     const dragAttr = isFixed ? '' : `draggable="true" ondragstart="onDragStart(event,'${s.id}')" ondragover="onDragOver(event)" ondrop="onDrop(event,'${s.id}')" ondragend="onDragEnd(event)"`;
     const dragStyle = isFixed ? '' : 'cursor:grab;';
+    const clickAttr = isFixed ? '' : `onclick="toggleStrategy('${s.id}')"`;;
 
     html += `
-      <div class="strategy-card" id="sc-${s.id}" ${dragAttr} onclick="${isFixed ? "toggleStrategy('"+s.id+"')" : ""}" style="${dragStyle}">
+      <div class="strategy-card" id="sc-${s.id}" ${dragAttr} ${clickAttr} style="${dragStyle}">
         <div class="strategy-header">
           <div class="strategy-icon" style="background: ${s.color}22; color: ${s.color}">${s.icon}</div>
           <div class="strategy-info">
@@ -609,20 +610,29 @@ function editPosition(posId, stratId) {
 // === Strategy Creation ===
 function handleAddStrategy(e) {
   e.preventDefault();
+  const name = document.getElementById('new-strat-name').value.trim();
+  const icon = document.getElementById('new-strat-icon').value || '📁';
+  const color = document.getElementById('new-strat-color').value;
+  const type = document.getElementById('new-strat-type').value;
+  const desc = document.getElementById('new-strat-desc').value;
+
+  if (!name) { showToast('❌ 请输入策略名称'); return; }
+
+
+  // 检查图标是否已被使用
+  const usedIcons = (portfolio.strategies || []).map(s => s.icon);
+  if (usedIcons.includes(icon)) { showToast('❌ 该图标已被其他策略使用，请换一个'); return; }
+
+
   fetch('/api/portfolio/strategy', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      name: document.getElementById('new-strat-name').value,
-      icon: document.getElementById('new-strat-icon').value || '📁',
-      color: document.getElementById('new-strat-color').value,
-      desc: document.getElementById('new-strat-desc').value,
-      type: document.getElementById('new-strat-type').value,
-    }),
+    body: JSON.stringify({ name, icon, color, desc, type }),
   })
     .then(r => r.json())
     .then(res => {
       if (res.success) { portfolio = res.portfolio; refreshAll(); closeModal('strategy-modal'); showToast('✅ 策略已创建'); }
+      else if (res.error) { showToast('❌ ' + res.error); }
     });
 }
 
@@ -1335,7 +1345,7 @@ function renderHistory() {
             <span style="font-size:0.8rem;color:var(--text-dim)">买入${s.buyQty}股 · 卖出${s.sellQty}股 · <span class="${s.totalPnl>=0?'green':'red'}">$${s.totalPnl.toFixed(2)}</span> · 胜率${swr}%</span>
           </div>
           <table class="history-table"><thead><tr>
-            <th>日期</th><th>操作</th><th>数量</th><th>价格</th><th>成本</th><th>盈亏</th><th>佣金</th><th>税费</th><th>交易成本</th><th>备注</th>
+            <th>日期</th><th>操作</th><th>数量</th><th>价格</th><th>成本</th><th>盈亏</th><th>佣金</th><th>税费</th><th>交易成本</th><th>备注</th><th></th>
           </tr></thead><tbody>`;
         trades.forEach(h => {
           const cls = h.action === 'BUY' ? 'buy-tag' : 'sell-tag';
@@ -1352,6 +1362,7 @@ function renderHistory() {
             <td>${fees > 0 ? '$'+fees.toFixed(2) : '-'}</td>
             <td class="fee-cell">$${(comm+fees).toFixed(2)}</td>
             <td style="font-size:0.8rem;color:var(--text-dim)">${h.note||'-'}</td>
+            <td><button class="btn btn-sm btn-danger" onclick="deleteHistoryItem('${h.id}')" title="删除此条记录">🗑️</button></td>
           </tr>`;
         });
         html += '</tbody></table></div>';
@@ -1398,7 +1409,7 @@ function renderHistory() {
             <span style="font-size:0.8rem;color:var(--text-dim)">${s.count}笔 · <span class="${s.totalPnl>=0?'green':'red'}">$${s.totalPnl.toFixed(2)}</span> · 胜率${swr}%</span>
           </div>
           <table class="history-table"><thead><tr>
-            <th>类型</th><th>策略</th><th>Strike</th><th>到期日</th><th>合约</th><th>开仓价</th><th>平仓价</th><th>Delta</th><th>平仓日</th><th>盈亏</th><th>盈亏%</th><th>佣金</th><th>交易成本</th>
+            <th>类型</th><th>策略</th><th>Strike</th><th>到期日</th><th>合约</th><th>开仓价</th><th>平仓价</th><th>Delta</th><th>平仓日</th><th>盈亏</th><th>盈亏%</th><th>佣金</th><th>交易成本</th><th></th>
           </tr></thead><tbody>`;
         trades.forEach(h => {
           const type = h.strategy==='wheel'
@@ -1420,6 +1431,7 @@ function renderHistory() {
             <td class="${h.pnl>=0?'green':'red'}">${h.pnl>=0?'+':''}${h.pnl_pct.toFixed(2)}%</td>
             <td>$${comm.toFixed(2)}</td>
             <td class="fee-cell">$${comm.toFixed(2)}</td>
+            <td><button class="btn btn-sm btn-danger" onclick="deleteHistoryItem('${h.id}')" title="删除此条记录">🗑️</button></td>
           </tr>`;
         });
         html += '</tbody></table></div>';
@@ -1430,6 +1442,24 @@ function renderHistory() {
 
   container.innerHTML = html;
 }
+
+function deleteHistoryItem(histId) {
+  if (!confirm('确认删除此条交易记录？相关现金、已实现盈利、持仓将被回滚。')) return;
+  fetch(`/api/history/${histId}`, { method: 'DELETE' })
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) {
+        portfolio = res.portfolio || portfolio;
+        realizedProfits = res.realized_profits || {};
+        renderHistory();
+        refreshAll();
+        showToast('✅ 交易记录已删除，相关数据已回滚');
+      } else {
+        showToast('❌ 删除失败: ' + (res.error || '未知错误'));
+      }
+    });
+}
+
 
 function clearHistory() {
   if (!confirm('确认清空所有历史记录？')) return;

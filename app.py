@@ -991,6 +991,94 @@ def clear_history():
     return jsonify({"success": True})
 
 
+@app.route("/api/history/<hist_id>", methods=["DELETE"])
+def delete_history_item(hist_id):
+    """删除单条交易记录，并级联回滚相关影响（现金、已实现盈利、持仓）"""
+    portfolio = load_portfolio()
+    history = portfolio.get("history", [])
+    item = next((h for h in history if h.get("id") == hist_id), None)
+    if not item:
+        return jsonify({"success": False, "error": "记录不存在"}), 404
+
+    history = [h for h in history if h.get("id") != hist_id]
+    portfolio["history"] = history
+
+    action = item.get("action", "")
+    strategy = item.get("strategy", "")
+    symbol = item.get("symbol", "")
+    qty = float(item.get("quantity", 0) or 0)
+    price = float(item.get("price", 0) or 0)
+    pnl = float(item.get("pnl", 0) or 0)
+    comm = float(item.get("commission", 0) or 0)
+    fees = float(item.get("fees", 0) or 0)
+    total_cost = comm + fees
+
+
+    if action == "BUY":
+        # 回滚：加回现金（持仓成本 + 佣金），删除对应持仓（按symbol/strategy匹配）
+        portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) + qty * price + total_cost, 2)
+        if strategy == "dca" or strategy == "swing":
+            portfolio["positions"] = [
+                p for p in portfolio.get("positions", [])
+                if not (p.get("symbol") == symbol and p.get("strategy") == strategy
+                       and abs(float(p.get("quantity", 0)) - qty) < 0.01
+                       and abs(float(p.get("avg_price", 0)) - price) < 0.01)
+            ]
+
+    elif action == "SELL":
+        # 回滚：扣除卖出的现金，恢复持仓数量，加回已实现盈利
+        portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) - qty * price + total_cost, 2)
+        # 回滚 realized_profits
+        rp = portfolio.get("realized_profits", {})
+        if strategy in rp and rp[strategy] != 0:
+            rp[strategy] = round(rp[strategy] - pnl, 2)
+            if abs(rp[strategy]) < 0.01:
+                rp[strategy] = 0.0
+            portfolio["realized_profits"] = rp
+        # 恢复持仓数量
+        for p in portfolio.get("positions", []):
+            if p.get("symbol") == symbol and p.get("strategy") == strategy:
+                p["quantity"] = round(float(p.get("quantity", 0)) + qty, 4)
+                if p["quantity"] > 0:
+                    # 还原 avg_price（理想情况，实际以close为主）
+                    pass
+                break
+
+    elif item.get("close_price") is not None:
+        # 期权平仓回滚：加回现金（平仓价×合约×100 - 佣金），回滚 realized_profits，恢复持仓
+        close_price = float(item.get("close_price", 0))
+        contracts = float(item.get("contracts", 0) or 0)
+        cp = abs(contracts)
+        portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) - close_price * cp * 100 + total_cost, 2)
+        rp = portfolio.get("realized_profits", {})
+        if strategy in rp and rp[strategy] != 0:
+            rp[strategy] = round(rp[strategy] - pnl, 2)
+            if abs(rp[strategy]) < 0.01:
+                rp[strategy] = 0.0
+            portfolio["realized_profits"] = rp
+        # 恢复期权持仓
+        pos_to_restore = {
+            "id": "hist_" + hist_id[:8],
+            "symbol": symbol,
+            "strategy": strategy,
+            "stock_price": float(item.get("stock_price", 0) or 0),
+            "strike": float(item.get("strike", 0) or 0),
+            "expiry": item.get("expiry", ""),
+            "option_type": item.get("option_type", "put"),
+            "delta": item.get("open_delta") or item.get("delta"),
+            "contracts": float(item.get("contracts", 0) or 0),
+            "buy_price": float(item.get("open_price", 0) or item.get("open_premium", 0)),
+            "premium": float(item.get("open_premium", 0) or item.get("open_price", 0)),
+            "wheel_type": item.get("wheel_type", ""),
+            "pnl": 0, "pnl_pct": 0, "current_option_price": float(item.get("open_price", 0) or item.get("open_premium", 0)),
+        }
+        portfolio.setdefault("positions", []).append(pos_to_restore)
+
+
+    save_portfolio(portfolio)
+    return jsonify({"success": True, "realized_profits": portfolio.get("realized_profits", {}), "cash_base_usd": portfolio.get("cash_base_usd", 0)})
+
+
 @app.route("/api/portfolio/position/<pos_id>/sell", methods=["POST"])
 def sell_position(pos_id):
     """卖出持仓。DCA: 平均成本法; Swing: FIFO逐笔配对。"""
