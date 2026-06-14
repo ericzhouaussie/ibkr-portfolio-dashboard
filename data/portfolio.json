@@ -29,20 +29,20 @@
       "desc": "短线波段交易"
     },
     {
-      "id": "2b373161",
-      "name": "1",
-      "icon": "👌",
-      "color": "#8b8d9a",
-      "desc": "",
-      "type": "stock"
-    },
-    {
       "id": "789a2642",
       "name": "1",
       "icon": "📁",
       "color": "#8b8d9a",
       "desc": "",
       "type": "option"
+    },
+    {
+      "id": "2b373161",
+      "name": "1",
+      "icon": "👌",
+      "color": "#8b8d9a",
+      "desc": "",
+      "type": "stock"
     },
     {
       "id": "cash",
