@@ -940,6 +940,7 @@ def close_position(pos_id):
             "fees": comm["fees"],
             "total_cost": comm["total_cost"],
             "status": "已平仓",
+            "action": "CLOSE",
             "notes": ""
         }
         # Wheel平仓：买回期权=付钱
@@ -968,6 +969,7 @@ def close_position(pos_id):
             "fees": comm["fees"],
             "total_cost": comm["total_cost"],
             "status": "已平仓",
+            "action": "CLOSE",
             "notes": ""
         }
         # 平仓卖出期权：收钱 - 佣金
@@ -1016,7 +1018,7 @@ def export_history():
     for h in history:
         action = h.get("action", "")
         is_option = h.get("strike") is not None
-        is_close = action in ("SELL", "CLOSE") or "close" in str(h.get("status", "")).lower()
+        is_close = action in ("SELL", "CLOSE") or "close" in str(h.get("status", "")).lower() or h.get("status") == "已平仓"
 
         row = {
             "日期": h.get("date", ""),
