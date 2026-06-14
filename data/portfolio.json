@@ -62,26 +62,6 @@
   ],
   "positions": [
     {
-      "id": "8408501c",
-      "symbol": "META",
-      "strategy": "wheel",
-      "notes": "",
-      "wheel_type": "sell_put",
-      "strike": 250.0,
-      "expiry": "2026-06-30",
-      "premium": 2000.0,
-      "contracts": 1,
-      "quantity": 100,
-      "stock_price": 540.0,
-      "cost_basis": -1750.0,
-      "current_option_price": 0.0,
-      "market_value": 54000.0,
-      "pnl": 200000.0,
-      "pnl_pct": 800.0,
-      "status": "等待行权",
-      "delta": -0.25
-    },
-    {
       "id": "db98d562",
       "symbol": "META",
       "strategy": "wheel",
@@ -182,11 +162,34 @@
       "status": "等待行权"
     }
   ],
-  "cash_base_usd": 230493.55,
+  "cash_base_usd": 232477.9,
   "cash_flows": [],
   "pnl_baselines": {},
-  "history": [],
+  "history": [
+    {
+      "id": "h_19eb3337",
+      "symbol": "META",
+      "strategy": "wheel",
+      "wheel_type": "sell_put",
+      "strike": 250.0,
+      "expiry": "2026-06-30",
+      "contracts": 1,
+      "open_premium": 2000.0,
+      "close_price": 0.15,
+      "open_delta": -0.25,
+      "open_date": "",
+      "close_date": "2026-06-14",
+      "pnl": 199985.0,
+      "pnl_pct": 1333233.33,
+      "commission": 0.65,
+      "fees": 0,
+      "total_cost": 0.65,
+      "status": "已平仓",
+      "notes": ""
+    }
+  ],
   "realized_profits": {
-    "dca": 62000.0
+    "dca": 62000.0,
+    "wheel": 199985.0
   }
 }
