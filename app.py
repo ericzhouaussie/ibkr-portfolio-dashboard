@@ -1016,7 +1016,7 @@ def export_history():
     for h in history:
         action = h.get("action", "")
         is_option = h.get("strike") is not None
-        is_close = action in ("SELL",) or "close" in str(h.get("status", "")).lower()
+        is_close = action in ("SELL", "CLOSE") or "close" in str(h.get("status", "")).lower()
 
         row = {
             "日期": h.get("date", ""),
@@ -1403,5 +1403,5 @@ def save_target_allocation(data):
 
 if __name__ == "__main__":
     import os
-    port = int(os.environ.get("PORT", 5050))
+    port = int(os.environ.get("PORT", 6060))
     app.run(debug=True, port=port, host="0.0.0.0")
