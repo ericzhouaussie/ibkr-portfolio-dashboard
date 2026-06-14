@@ -173,11 +173,11 @@
       "stock_price": 0.0,
       "premium": 1.0,
       "buy_price": 1.0,
-      "current_option_price": 1.0,
+      "current_option_price": 2.0,
       "delta": -0.12,
-      "market_value": 100.0,
-      "pnl": 0,
-      "pnl_pct": 0,
+      "market_value": 200.0,
+      "pnl": -100.0,
+      "pnl_pct": -100.0,
       "wheel_type": "sell_put",
       "status": "等待行权"
     }
