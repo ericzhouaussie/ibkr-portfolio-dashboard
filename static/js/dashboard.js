@@ -248,7 +248,7 @@ function onDrop(e, targetId) {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({strategies: strategies.map(s => s.id)})
-  }).then(r => r.json()).then(() => renderPortfolio());
+  }).then(r => r.json()).then(() => refreshAll());
 }
 function onDragEnd(e) {
   e.currentTarget.style.opacity = '';
@@ -882,7 +882,7 @@ async function submitCashAdjust() {
   const data = await resp.json();
   if (data.success) {
     portfolio.cash_base_usd = data.cash_base_usd;
-    renderPortfolio();
+    refreshAll();
     msg.textContent = `已更新为 $${newVal.toFixed(2)}`;
     msg.style.color = 'green';
   } else {
