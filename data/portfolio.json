@@ -105,9 +105,30 @@
       "pnl": -1100.0,
       "pnl_pct": -55.0,
       "delta": 0.14
+    },
+    {
+      "id": "0b5f9fc5",
+      "symbol": "SPY",
+      "strategy": "wheel",
+      "notes": "",
+      "strike": 500.0,
+      "expiry": "2026-07-17",
+      "option_type": "put",
+      "contracts": -2,
+      "quantity": -200,
+      "stock_price": 510.0,
+      "premium": 3.5,
+      "buy_price": 3.5,
+      "current_option_price": 3.5,
+      "delta": -0.3,
+      "market_value": 700.0,
+      "pnl": 0,
+      "pnl_pct": 0,
+      "wheel_type": "sell_put",
+      "status": "等待行权"
     }
   ],
-  "cash_base_usd": 169999.0,
+  "cash_base_usd": 170699.0,
   "cash_flows": [],
   "pnl_baselines": {}
 }
