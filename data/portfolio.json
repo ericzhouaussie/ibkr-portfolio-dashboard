@@ -105,26 +105,6 @@
       "pnl": -1100.0,
       "pnl_pct": -55.0,
       "delta": 0.14
-    },
-    {
-      "id": "90fe83b5",
-      "symbol": "AAPL",
-      "strategy": "leaps",
-      "notes": "",
-      "strike": 200.0,
-      "expiry": "2028-01-20",
-      "option_type": "call",
-      "contracts": 3,
-      "quantity": 300,
-      "stock_price": 195.0,
-      "premium": 15.0,
-      "buy_price": 15.0,
-      "current_option_price": 22.0,
-      "delta": 0.65,
-      "market_value": 6600.0,
-      "pnl": 2100.0,
-      "pnl_pct": 46.67,
-      "wheel_type": "leaps_long"
     }
   ],
   "cash_base_usd": 166197.05,
