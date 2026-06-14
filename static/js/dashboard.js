@@ -1473,12 +1473,7 @@ function deleteHistoryItem(histId) {
 
 
 function exportHistory() {
-  const link = document.createElement('a');
-  link.href = '/api/export/history';
-  link.download = '';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  window.location.href = '/api/export/history';
 }
 
 function clearHistory() {

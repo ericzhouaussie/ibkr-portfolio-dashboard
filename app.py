@@ -124,6 +124,11 @@ def load_portfolio():
     if PORTFOLIO_FILE.exists():
         data = json.loads(PORTFOLIO_FILE.read_text(encoding="utf-8"))
         migrate_realized_profits(data)
+        # 迁移：为旧持仓补 open_date，为 buy_trades 补 date
+        for p in data.get("positions", []):
+            p.setdefault("open_date", "")
+            for t in p.get("buy_trades", []):
+                t.setdefault("date", "")
         return data
     # First run: seed with default data
     default = dict(DEFAULT_PORTFOLIO)
@@ -443,6 +448,7 @@ def add_position():
         "symbol": data.get("symbol", "").upper(),
         "strategy": data.get("strategy", "dca"),
         "notes": data.get("notes", ""),
+        "open_date": data.get("open_date", ""),
     }
 
     # 根据策略类型处理不同字段
@@ -491,11 +497,17 @@ def add_position():
         position["pnl"] = round((cp - ap) * qty, 2)
         position["pnl_pct"] = round((cp / ap - 1) * 100, 2) if ap else 0
 
+    # 新建持仓：补 open_date
+    if not position.get("open_date"):
+        position["open_date"] = __import__("datetime").datetime.now().strftime("%Y-%m-%d")
+
     # Update or add (DCA/Swing同策略同symbol自动合并)
     if position["id"]:
         for i, p in enumerate(portfolio["positions"]):
             if p["id"] == position["id"]:
-                position["id"] = p["id"]
+                # 保留 open_date（表单未传时继承旧值）
+                if not position.get("open_date") and p.get("open_date"):
+                    position["open_date"] = p["open_date"]
                 portfolio["positions"][i] = position
                 break
         else:
@@ -920,7 +932,7 @@ def close_position(pos_id):
             "open_premium": open_premium,
             "close_price": close_price,
             "open_delta": position.get("delta", 0),
-            "open_date": "",
+            "open_date": position.get("open_date", ""),
             "close_date": close_date,
             "pnl": pnl,
             "pnl_pct": pnl_pct,
@@ -948,7 +960,7 @@ def close_position(pos_id):
             "open_price": open_price,
             "close_price": close_price,
             "open_delta": position.get("delta", 0),
-            "open_date": "",
+            "open_date": position.get("open_date", ""),
             "close_date": close_date,
             "pnl": pnl,
             "pnl_pct": pnl_pct,
@@ -1004,34 +1016,43 @@ def export_history():
     for h in history:
         action = h.get("action", "")
         is_option = h.get("strike") is not None
+        is_close = action in ("SELL",) or "close" in str(h.get("status", "")).lower()
 
         row = {
             "日期": h.get("date", ""),
             "标的": h.get("symbol", ""),
-            "操作": action,
-            "数量": h.get("quantity", ""),
-            "单价": h.get("price", ""),
-            "盈亏金额": h.get("pnl", 0),
+            "操作": "平仓" if is_close else action,
             "策略": h.get("strategy", ""),
             "佣金": h.get("commission", 0),
             "备注": h.get("note", ""),
         }
+
+        # 开仓信息
+        if not is_close:
+            row["开仓日期"] = h.get("date", "")
+            row["开仓价格"] = h.get("price", h.get("premium", h.get("open_premium", "")))
+            row["开仓数量"] = h.get("quantity", h.get("contracts", ""))
+            row["平仓日期"] = ""
+            row["平仓价格"] = ""
+            row["平仓数量"] = ""
+        else:
+            row["开仓日期"] = h.get("open_date", "")
+            row["开仓价格"] = h.get("open_price", h.get("open_premium", h.get("cost_price", "")))
+            row["开仓数量"] = ""
+            row["平仓日期"] = h.get("close_date", h.get("date", ""))
+            row["平仓价格"] = h.get("close_price", h.get("price", ""))
+            row["平仓数量"] = h.get("quantity", h.get("contracts", ""))
+
+        # 盈亏
+        row["盈亏金额"] = h.get("pnl", 0)
+        row["盈亏%"] = h.get("pnl_pct", "")
 
         if is_option:
             row["类型"] = h.get("wheel_type", h.get("option_type", ""))
             row["行权价"] = h.get("strike", "")
             row["到期日"] = h.get("expiry", "")
             row["合约数"] = h.get("contracts", "")
-            if action == "CLOSE" or "close" in str(h.get("status", "")).lower():
-                row["操作"] = "平仓"
-                row["开仓价"] = h.get("open_price", h.get("open_premium", ""))
-                row["平仓价"] = h.get("close_price", "")
-            elif action == "SELL":
-                row["权利金"] = h.get("premium", h.get("open_premium", ""))
-            else:
-                row["权利金"] = h.get("premium", h.get("buy_price", ""))
             row["Delta"] = h.get("delta", "")
-            row["盈亏%"] = h.get("pnl_pct", "")
         else:
             row["成本价"] = h.get("cost_price", "")
             row["费用"] = h.get("fees", 0)
@@ -1218,6 +1239,7 @@ def sell_position(pos_id):
                 "quantity": match_qty,
                 "price": sell_price,
                 "cost_price": trade["price"],
+                "open_date": trade.get("date", ""),
                 "pnl": round(trade_pnl, 2),
                 "note": f"Swing卖出 {match_qty}股（FIFO成本${trade['price']:.2f}）",
                 "strategy": "swing",
@@ -1238,6 +1260,7 @@ def sell_position(pos_id):
             "quantity": sell_qty,
             "price": sell_price,
             "cost_price": avg_cost,
+            "open_date": pos.get("open_date", ""),
             "pnl": round(total_pnl, 2),
             "note": f"DCA卖出 {sell_qty}股（成本{avg_cost:.2f}）",
             "strategy": "dca",
