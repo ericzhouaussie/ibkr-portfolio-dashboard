@@ -4,6 +4,7 @@
 let portfolio = window.__PORTFOLIO__ || {strategies:[], positions:[], cash:0};
 let targetAlloc = window.__TARGETS__ || [];
 let historyList = [];  // 存储历史记录
+let realizedProfits = window.__PORTFOLIO__.realized_profits || {};  // 各策略已实现盈利
 
 // === Helpers ===
 function fmtNum(n) {
@@ -115,6 +116,48 @@ function getTotalPnl() {
   return (portfolio.positions || []).reduce((s, p) => s + p.pnl, 0);
 }
 
+// === Strategy Analytics Helpers ===
+function getStrategyTotalCost(stratId) {
+  // 计算某策略所有持仓的总成本
+  const positions = getPositionsForStrategy(stratId);
+  let totalCost = 0;
+  positions.forEach(p => {
+    if (getStrategyType(stratId) === 'option') {
+      const absContracts = Math.abs(p.contracts || 0);
+      const isSold = (p.contracts || 0) < 0;
+      if (!isSold) {
+        // 买期权：成本 = buy_price * 100 * 合约数
+        totalCost += (p.buy_price || 0) * 100 * absContracts;
+      }
+      // 卖期权成本计为0（已收权利金）
+    } else {
+      // 正股：成本 = avg_price * quantity
+      totalCost += (p.avg_price || 0) * (p.quantity || 0);
+    }
+  });
+  return totalCost;
+}
+
+function getStrategyRealizedProfit(stratId) {
+  // 从realizedProfits字典中获取累计已实现盈利
+  return realizedProfits[stratId] || 0;
+}
+
+function hasProfitAlert(stratId) {
+  // 非DCA策略，已实现盈利 >= $5000 时提醒
+  if (stratId === 'dca' || stratId === 'cash') return false;
+  return getStrategyRealizedProfit(stratId) >= 5000;
+}
+
+function getAvailableProfitSources(currentStratId) {
+  // 返回可用盈利资金来源列表（已实现盈利 > 0，且不是当前策略）
+  const strategies = portfolio.strategies || [];
+  return strategies.filter(s => {
+    if (s.id === currentStratId || s.id === 'cash') return false;
+    return getStrategyRealizedProfit(s.id) > 0;
+  });
+}
+
 // === Stats Row ===
 function renderStats() {
   const total = getTotalValue();
@@ -177,25 +220,88 @@ function renderChallenge(total) {
 }
 
 // === Strategy Cards ===
+let _dragStratId = null;
+function onDragStart(e, stratId) {
+  _dragStratId = stratId;
+  e.dataTransfer.effectAllowed = 'move';
+  e.currentTarget.style.opacity = '0.5';
+}
+function onDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+}
+function onDrop(e, targetId) {
+  e.preventDefault();
+  if (!_dragStratId || _dragStratId === targetId) return;
+  const fixedIds = ['cash', 'dca', 'wheel', 'leaps'];
+  if (fixedIds.includes(_dragStratId) || fixedIds.includes(targetId)) return;
+  // 交换策略顺序
+  const strategies = portfolio.strategies;
+  const fromIdx = strategies.findIndex(s => s.id === _dragStratId);
+  const toIdx = strategies.findIndex(s => s.id === targetId);
+  if (fromIdx < 0 || toIdx < 0) return;
+  const [moved] = strategies.splice(fromIdx, 1);
+  strategies.splice(toIdx, 0, moved);
+  _dragStratId = null;
+  // 持久化顺序到后端
+  fetch('/api/portfolio/order', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({strategies: strategies.map(s => s.id)})
+  }).then(r => r.json()).then(() => renderPortfolio());
+}
+function onDragEnd(e) {
+  e.currentTarget.style.opacity = '';
+  _dragStratId = null;
+}
+
 function renderStrategies() {
   const container = document.getElementById('strategy-list');
   const total = getTotalValue();
-  const strategies = portfolio.strategies || [];
   let html = '';
+
+  // 收集需要提醒的策略（已实现盈利 >= $5000）
+  const alertStrategies = strategies.filter(s => hasProfitAlert(s.id));
+  if (alertStrategies.length > 0) {
+    const alerts = alertStrategies.map(s => `${s.icon}${s.name}(${fmtNum(getStrategyRealizedProfit(s.id))})`).join('、');
+    html += `<div style="background:#7c3aed22;border:1px solid #7c3aed55;color:#c4b5fd;padding:10px 16px;border-radius:10px;margin-bottom:12px;font-size:0.82rem;line-height:1.7">
+      <b style="color:#a78bfa">💰 盈利再投资提醒</b><br>
+      ${alertStrategies.map(s => {
+        const rp = getStrategyRealizedProfit(s.id);
+        return `<span style="color:#e2e8f0">${s.icon} <b>${s.name}</b> 已实现盈利 <span class="green">${fmtNum(rp)}</span>，买入时可选择使用此盈利支付</span>`;
+      }).join('<br>')}
+    </div>`;
+  }
 
   strategies.forEach(s => {
     const value = getStrategyValue(s.id);
     const pnl = getStrategyPnl(s.id);
     const pct = total ? (value / total * 100).toFixed(1) : '0.0';
     const positions = getPositionsForStrategy(s.id);
+    const totalCost = getStrategyTotalCost(s.id);
+    const realizedProfit = getStrategyRealizedProfit(s.id);
+    const weightedReturn = totalCost > 0 ? (pnl / totalCost * 100) : (value > 0 ? 0 : 0);
+    const isFixed = ['cash', 'dca', 'wheel', 'leaps'].includes(s.id);
+    const hasAlert = hasProfitAlert(s.id);
+    const stratPctTag = pct + '%';
+    const dragAttr = isFixed ? '' : `draggable="true" ondragstart="onDragStart(event,'${s.id}')" ondragover="onDragOver(event)" ondrop="onDrop(event,'${s.id}')" ondragend="onDragEnd(event)"`;
+    const dragStyle = isFixed ? '' : 'cursor:grab;';
 
     html += `
-      <div class="strategy-card" id="sc-${s.id}" onclick="toggleStrategy('${s.id}')">
+      <div class="strategy-card" id="sc-${s.id}" ${dragAttr} onclick="${isFixed ? "toggleStrategy('"+s.id+"')" : ""}" style="${dragStyle}">
         <div class="strategy-header">
           <div class="strategy-icon" style="background: ${s.color}22; color: ${s.color}">${s.icon}</div>
           <div class="strategy-info">
-            <div class="strategy-name">${s.name}</div>
+            <div class="strategy-name">${s.name}${hasAlert ? ' <span style="font-size:0.7em;color:#a78bfa;vertical-align:middle">💜</span>' : ''}</div>
             <div class="strategy-desc">${s.desc || ''}</div>
+            ${s.id !== 'cash' ? `
+              <div class="strategy-analytics" style="display:flex;gap:12px;font-size:0.72rem;color:var(--text-dim);margin-top:3px">
+                <span>成本: <b style="color:var(--text)">${fmtNum(totalCost)}</b></span>
+                <span>占比: <b style="color:var(--text)">${stratPctTag}</b></span>
+                ${totalCost > 0 ? `<span>加权回报: <b class="${pctClass(weightedReturn)}">${fmtPct(weightedReturn)}</b></span>` : ''}
+                ${realizedProfit !== 0 ? `<span>已实现盈利: <b class="${pctClass(realizedProfit)}">${fmtNum(realizedProfit)}</b></span>` : ''}
+              </div>
+            ` : ''}
           </div>
           <div class="strategy-meta">
             <div class="strategy-value">${fmtNum(value)}</div>
@@ -203,6 +309,7 @@ function renderStrategies() {
             ${s.id !== 'cash' ? `<div class="strategy-pnl ${pctClass(pnl)}">${fmtPct(pnl)}</div>` : ''}
           </div>
           ${s.id !== 'cash' && s.id !== 'dca' && s.id !== 'wheel' && s.id !== 'leaps' ? `<button class="btn-delete-strategy" onclick="event.stopPropagation(); confirmDeleteStrategy('${s.id}','${s.name.replace(/'/g, "\\'")}')" title="删除策略">🗑️</button>` : ''}
+          ${!isFixed ? `<div class="strategy-drag-handle" style="color:var(--text-dim);font-size:1rem;padding:0 6px;cursor:grab" title="拖动排序">⋮⋮</div>` : ''}
           <div class="strategy-chevron">▼</div>
         </div>
         <div class="strategy-bar"><div class="strategy-bar-fill" style="width: ${pct}%; background: ${s.color}"></div></div>
@@ -245,7 +352,7 @@ function renderStrategies() {
                       </div>
                       <div class="holding-value">
                         <div>${valLeft}</div>
-                        <div>现价: $${(p.current_option_price || 0).toFixed(0)}</div>
+                        <div>期权现价: $${(p.current_option_price || 0).toFixed(0)}</div>
                       </div>
                       <div class="holding-pnl ${pctClass(p.pnl)}">${fmtNum(p.pnl)} (${fmtPct(p.pnl_pct)})</div>
                       <div class="holding-actions">
@@ -313,29 +420,43 @@ function toggleStrategy(id) {
 
 // === Position Actions ===
 function renderAddPositionForm(stratId) {
-  if (getStrategyType(stratId) === 'option') {
+  const sources = getAvailableProfitSources(stratId);
+  const profitSourceSelect = sources.length > 0
+    ? `<select id="profit-source-${stratId}" style="width:140px;background:#0f172a;color:#e8eaf0;border:1px solid #1e2235;border-radius:6px;padding:6px 4px;font-size:12px;margin-top:4px">
+        <option value="">💵 现金支付</option>
+        ${sources.map(s => `<option value="${s.id}">💜 用${s.icon}${s.name}(${fmtNum(getStrategyRealizedProfit(s.id))})</option>`).join('')}
+      </select>`
+    : '';
+  const isOption = getStrategyType(stratId) === 'option';
+  if (isOption) {
     return `
-      <input class="input-sym" id="add-sym-${stratId}" placeholder="AMZN" style="width:70px">
-      <select class="input-option-type" id="add-option-type-${stratId}" style="width:65px;background:#0f172a;color:#e8eaf0;border:1px solid #1e2235;border-radius:6px;padding:6px 4px;font-size:12px">
-        <option value="put">Put</option>
-        <option value="call">Call</option>
-      </select>
-      <input class="input-strike" id="add-strike-${stratId}" type="number" step="any" placeholder="Strike" style="width:70px">
-      <input class="input-expiry" id="add-expiry-${stratId}" type="date" style="width:120px">
-      <input class="input-contracts" id="add-contracts-${stratId}" type="number" step="1" placeholder="合约(负=卖)" style="width:85px">
-      <input class="input-premium" id="add-premium-${stratId}" type="number" step="any" placeholder="权利金/张" style="width:80px">
-      <input class="input-delta" id="add-delta-${stratId}" type="number" step="0.01" placeholder="Delta" style="width:65px">
-      <input class="input-stock-price" id="add-stock-price-${stratId}" type="number" step="any" placeholder="股价" style="width:65px">
-      <button class="btn btn-sm btn-primary" onclick="addPositionToStrategy('${stratId}')">添加</button>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">
+        <input class="input-sym" id="add-sym-${stratId}" placeholder="AMZN" style="width:70px">
+        <select class="input-option-type" id="add-option-type-${stratId}" style="width:65px;background:#0f172a;color:#e8eaf0;border:1px solid #1e2235;border-radius:6px;padding:6px 4px;font-size:12px">
+          <option value="put">Put</option>
+          <option value="call">Call</option>
+        </select>
+        <input class="input-strike" id="add-strike-${stratId}" type="number" step="any" placeholder="Strike" style="width:70px">
+        <input class="input-expiry" id="add-expiry-${stratId}" type="date" style="width:120px">
+        <input class="input-contracts" id="add-contracts-${stratId}" type="number" step="1" placeholder="合约(负=卖)" style="width:85px">
+        <input class="input-premium" id="add-premium-${stratId}" type="number" step="any" placeholder="权利金/张" style="width:80px">
+        <input class="input-delta" id="add-delta-${stratId}" type="number" step="0.01" placeholder="Delta" style="width:65px">
+        <input class="input-stock-price" id="add-stock-price-${stratId}" type="number" step="any" placeholder="股价" style="width:65px">
+        <button class="btn btn-sm btn-primary" onclick="addPositionToStrategy('${stratId}')">添加</button>
+      </div>
+      ${profitSourceSelect}
     `;
   }
   // 正股策略 (DCA, Swing)
   return `
-    <input class="input-sym" id="add-sym-${stratId}" placeholder="AAPL" style="width:70px">
-    <input class="input-qty" id="add-qty-${stratId}" type="number" step="any" placeholder="数量" style="width:60px">
-    <input class="input-price" id="add-price-${stratId}" type="number" step="any" placeholder="成本价" style="width:75px">
-    <input class="input-curr" id="add-curr-${stratId}" type="number" step="any" placeholder="现价" style="width:75px">
-    <button class="btn btn-sm btn-primary" onclick="addPositionToStrategy('${stratId}')">添加</button>
+    <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">
+      <input class="input-sym" id="add-sym-${stratId}" placeholder="AAPL" style="width:70px">
+      <input class="input-qty" id="add-qty-${stratId}" type="number" step="any" placeholder="数量" style="width:60px">
+      <input class="input-price" id="add-price-${stratId}" type="number" step="any" placeholder="成本价" style="width:75px">
+      <input class="input-curr" id="add-curr-${stratId}" type="number" step="any" placeholder="现价" style="width:75px">
+      <button class="btn btn-sm btn-primary" onclick="addPositionToStrategy('${stratId}')">添加</button>
+    </div>
+    ${profitSourceSelect}
   `;
 }
 
@@ -357,6 +478,8 @@ function addPositionToStrategy(stratId) {
     
     const quantity = contracts * 100;
     
+    const profitSource = document.getElementById(`profit-source-${stratId}`) ? document.getElementById(`profit-source-${stratId}`).value : '';
+    
     fetch('/api/portfolio/position', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -376,11 +499,18 @@ function addPositionToStrategy(stratId) {
         pnl: 0,
         pnl_pct: 0,
         delta: delta,
+        profit_source: profitSource,
       }),
     })
       .then(r => r.json())
       .then(res => {
-        if (res.success) { portfolio = res.portfolio; refreshAll(); showToast('✅ 已添加 ' + sym); }
+        if (res.success) {
+          portfolio = res.portfolio;
+          realizedProfits = res.realized_profits || {};
+          refreshAll();
+          const msg = profitSource ? `✅ ${sym} 已添加（用${profitSource}盈利支付）` : `✅ 已添加 ${sym}`;
+          showToast(msg);
+        }
       });
     return;
   }
@@ -389,17 +519,24 @@ function addPositionToStrategy(stratId) {
   const qty = parseFloat(document.getElementById(`add-qty-${stratId}`).value);
   const avg = parseFloat(document.getElementById(`add-price-${stratId}`).value);
   const curr = parseFloat(document.getElementById(`add-curr-${stratId}`).value) || avg;
+  const profitSource = document.getElementById(`profit-source-${stratId}`) ? document.getElementById(`profit-source-${stratId}`).value : '';
 
   if (isNaN(qty) || isNaN(avg)) { showToast('请填写完整信息', 'error'); return; }
 
   fetch('/api/portfolio/position', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ symbol: sym, quantity: qty, avg_price: avg, current_price: curr, strategy: stratId }),
+    body: JSON.stringify({ symbol: sym, quantity: qty, avg_price: avg, current_price: curr, strategy: stratId, profit_source: profitSource }),
   })
     .then(r => r.json())
     .then(res => {
-      if (res.success) { portfolio = res.portfolio; refreshAll(); showToast('✅ 已添加 ' + sym); }
+      if (res.success) {
+        portfolio = res.portfolio;
+        realizedProfits = res.realized_profits || {};
+        refreshAll();
+        const msg = profitSource ? `✅ ${sym} 已添加（用${profitSource}盈利支付）` : `✅ 已添加 ${sym}`;
+        showToast(msg);
+      }
     });
 }
 
@@ -1383,6 +1520,7 @@ function handleBackupUpload(event) {
 
 
 function refreshAll() {
+  realizedProfits = portfolio.realized_profits || {};
   renderStats();
   renderStrategies();
   renderStrategyPieChart();

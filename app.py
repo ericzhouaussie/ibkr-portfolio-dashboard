@@ -123,11 +123,10 @@ DEFAULT_PORTFOLIO = {
 def load_portfolio():
     if PORTFOLIO_FILE.exists():
         data = json.loads(PORTFOLIO_FILE.read_text(encoding="utf-8"))
-        # (profit_recycling removed)
+        migrate_realized_profits(data)
         return data
     # First run: seed with default data
     default = dict(DEFAULT_PORTFOLIO)
-    # (profit_recycling removed)
     save_portfolio(default)
     return default
 
@@ -209,10 +208,48 @@ def migrate_cash_flows(portfolio):
         save_portfolio(portfolio)
 
 
+def migrate_realized_profits(portfolio):
+    """从历史记录中补充计算已实现盈利（首次初始化）"""
+    if "realized_profits" in portfolio:
+        return  # 已有数据，跳过
+    rp = {}
+    for rec in portfolio.get("history", []):
+        strat = rec.get("strategy", "")
+        pnl = rec.get("pnl", 0)
+        if strat:
+            rp[strat] = round(rp.get(strat, 0) + pnl, 2)
+    if rp:
+        portfolio["realized_profits"] = {k: round(v, 2) for k, v in rp.items()}
+        save_portfolio(portfolio)
+
+
 def generate_id(prefix=""):
     """Generate unique ID with optional prefix"""
     import uuid
     return prefix + str(uuid.uuid4())[:8]
+
+
+def add_realized_profit(portfolio, strategy, pnl):
+    """记录已实现盈利到策略累计账户"""
+    rp = portfolio.setdefault("realized_profits", {})
+    rp[strategy] = round(rp.get(strategy, 0) + pnl, 2)
+
+
+def get_realized_profits(portfolio):
+    """返回每个策略的已实现盈利字典 {strategy_id: amount}"""
+    rp = portfolio.get("realized_profits", {})
+    # 从历史记录中补充计算（兼容旧数据）
+    history = portfolio.get("history", [])
+    result = dict(rp)
+    for rec in history:
+        strat = rec.get("strategy", "")
+        pnl = rec.get("pnl", 0)
+        # 检查是否已通过 add_realized_profit 记录过
+        if strat not in result:
+            result[strat] = 0.0
+        # 避免 double-counting（如果 realized_profits 中已有，跳过）
+        # 旧记录没有这个逻辑，直接累加
+    return {k: round(v, 2) for k, v in result.items()}
 
 def load_target_allocation():
     if TARGET_FILE.exists():
@@ -369,6 +406,22 @@ def get_portfolio():
     return jsonify(load_portfolio())
 
 
+@app.route("/api/portfolio/order", methods=["POST"])
+def save_strategy_order():
+    """保存策略排序顺序"""
+    data = request.get_json()
+    order = data.get("strategies", [])  # 按新顺序排列的策略ID列表
+    portfolio = load_portfolio()
+    strategies = portfolio.get("strategies", [])
+    if not order or not strategies:
+        return jsonify({"error": "无效数据"}), 400
+    # 按新顺序重排
+    id_to_strat = {s["id"]: s for s in strategies}
+    portfolio["strategies"] = [id_to_strat[sid] for sid in order if sid in id_to_strat]
+    save_portfolio(portfolio)
+    return jsonify({"success": True})
+
+
 def get_strategy_type(strategies, strat_id):
     """获取策略类型，向后兼容硬编码策略ID"""
     strat = next((s for s in strategies if s["id"] == strat_id), None)
@@ -508,9 +561,9 @@ def add_position():
         position["id"] = str(uuid.uuid4())[:8]
         portfolio["positions"].append(position)
 
-    # === 开仓时更新现金 ===
-    from datetime import datetime
-    now_str = datetime.now().strftime("%Y-%m-%d")
+    # === 资金来源：现金还是已实现盈利 ===
+    profit_source = data.get("profit_source", "")  # 如 "wheel" 或 "swing"
+    rp = portfolio.get("realized_profits", {})
 
     # 开仓现金管理：根据合约数正负号判断买卖方向
     if is_option:
@@ -528,7 +581,13 @@ def add_position():
                 cost = premium_per * abs_c * 100
                 comm = calc_commission(0, premium_per, is_option=True, contracts=abs_c)
                 net_cost = cost + comm["total_cost"]
-                portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) - net_cost, 2)
+                if profit_source and rp.get(profit_source, 0) >= net_cost:
+                    # 用已实现盈利支付
+                    rp[profit_source] = round(rp[profit_source] - net_cost, 2)
+                    portfolio["realized_profits"] = rp
+                    position["funded_by_profit"] = profit_source
+                else:
+                    portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) - net_cost, 2)
     else:
         # 正股策略：买入股票/ETF付钱
         qty = position.get("quantity", 0)
@@ -537,10 +596,16 @@ def add_position():
             cost = qty * price
             comm = calc_commission(qty, price)
             net_cost = cost + comm["total_cost"]
-            portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) - net_cost, 2)
+            if profit_source and rp.get(profit_source, 0) >= net_cost:
+                # 用已实现盈利支付
+                rp[profit_source] = round(rp[profit_source] - net_cost, 2)
+                portfolio["realized_profits"] = rp
+                position["funded_by_profit"] = profit_source
+            else:
+                portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) - net_cost, 2)
 
     save_portfolio(portfolio)
-    return jsonify({"success": True, "position": position, "portfolio": portfolio})
+    return jsonify({"success": True, "position": position, "realized_profits": portfolio.get("realized_profits", {}), "portfolio": portfolio})
 
 
 @app.route("/api/portfolio/position/<pos_id>", methods=["DELETE"])
@@ -563,6 +628,28 @@ def adjust_cash():
 
 
 # ---- Cash Flow ----
+
+@app.route("/api/realized-profits", methods=["GET"])
+def get_realized_profits():
+    """获取各策略已实现盈利"""
+    portfolio = load_portfolio()
+    return jsonify({"realized_profits": portfolio.get("realized_profits", {}), "portfolio": portfolio})
+
+
+@app.route("/api/realized-profits", methods=["POST"])
+def reset_realized_profit():
+    """重置某个策略的已实现盈利（可选）"""
+    data = request.get_json()
+    portfolio = load_portfolio()
+    strategy = data.get("strategy", "")
+    if strategy:
+        rp = portfolio.get("realized_profits", {})
+        if strategy in rp:
+            rp[strategy] = 0.0
+            portfolio["realized_profits"] = rp
+            save_portfolio(portfolio)
+    return jsonify({"success": True, "realized_profits": portfolio.get("realized_profits", {})})
+
 
 @app.route("/api/cash-flow", methods=["GET", "POST"])
 def cash_flow():
@@ -874,6 +961,9 @@ def close_position(pos_id):
         # 平仓卖出期权：收钱 - 佣金
         portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) + close_price * contracts * 100 - comm["total_cost"], 2)
     
+    # 记录已实现盈利
+    add_realized_profit(portfolio, position["strategy"], pnl)
+    
     # 从历史中移除持仓
     portfolio["positions"].pop(position_index)
     
@@ -882,7 +972,7 @@ def close_position(pos_id):
     portfolio["history"] = history
     
     save_portfolio(portfolio)
-    return jsonify({"success": True, "history": record, "portfolio": portfolio})
+    return jsonify({"success": True, "history": record, "realized_profits": portfolio.get("realized_profits", {}), "portfolio": portfolio})
 
 
 @app.route("/api/history", methods=["GET"])
@@ -995,9 +1085,11 @@ def sell_position(pos_id):
     comm = calc_commission(sell_qty, sell_price)
     net_proceeds = sell_qty * sell_price - comm["total_cost"]
     portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) + net_proceeds, 2)
+    # 记录已实现盈利（每次卖出都计入）
+    add_realized_profit(portfolio, strategy, total_pnl)
     portfolio["history"] = history
     save_portfolio(portfolio)
-    return jsonify({"success": True, "pnl": round(total_pnl, 2), "remaining": remaining, "portfolio": portfolio})
+    return jsonify({"success": True, "pnl": round(total_pnl, 2), "remaining": remaining, "realized_profits": portfolio.get("realized_profits", {}), "portfolio": portfolio})
 
 
 @app.route("/api/backup")

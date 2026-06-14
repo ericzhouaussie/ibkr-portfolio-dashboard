@@ -797,3 +797,18 @@ body {
 .month-content {
   padding: 0 6px 6px;
 }
+
+/* === Drag & Drop === */
+.strategy-card[draggable="true"] { cursor: grab; }
+.strategy-card[draggable="true"]:active { cursor: grabbing; }
+.strategy-drag-handle { user-select: none; flex-shrink: 0; }
+
+/* === Strategy Analytics Row === */
+.strategy-analytics { font-size: 0.72rem; color: var(--text-dim); margin-top: 3px; }
+.strategy-analytics b { color: var(--text-primary); }
+
+/* === Profit Source Selector === */
+#add-form-row input, #add-form-row select { outline: none; }
+
+/* === Purple Profit Alert === */
+.strategy-name { display: flex; align-items: center; gap: 4px; }
