@@ -459,7 +459,6 @@ function renderAddPositionForm(stratId) {
         <input class="input-contracts" id="add-contracts-${stratId}" type="number" step="1" placeholder="合约(负=卖)" style="width:85px">
         <input class="input-premium" id="add-premium-${stratId}" type="number" step="any" placeholder="权利金/张" style="width:80px">
         <input class="input-delta" id="add-delta-${stratId}" type="number" step="0.01" placeholder="Delta" style="width:65px">
-        <input class="input-stock-price" id="add-stock-price-${stratId}" type="number" step="any" placeholder="当前价" style="width:65px">
         <button class="btn btn-sm btn-primary" onclick="addPositionToStrategy('${stratId}')">添加</button>
       </div>
       ${profitSourceSelect}
@@ -490,7 +489,6 @@ function addPositionToStrategy(stratId) {
     const premium = parseFloat(document.getElementById(`add-premium-${stratId}`).value) || 0;
     const optionType = document.getElementById(`add-option-type-${stratId}`).value;
     const delta = parseFloat(document.getElementById(`add-delta-${stratId}`).value) || 0;
-    const stockPrice = parseFloat(document.getElementById(`add-stock-price-${stratId}`).value) || 0;
     
     if (!strike || !expiry) { showToast('请填写完整信息', 'error'); return; }
     
@@ -512,11 +510,8 @@ function addPositionToStrategy(stratId) {
         premium: premium,
         buy_price: premium,
         current_option_price: premium,
-        stock_price: stockPrice,
-        market_value: 0,
-        pnl: 0,
-        pnl_pct: 0,
         delta: delta,
+        profit_source: profitSource || undefined,
         profit_source: profitSource,
       }),
     })
