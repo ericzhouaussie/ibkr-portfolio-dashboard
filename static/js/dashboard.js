@@ -308,7 +308,7 @@ function renderStrategies() {
           <div class="strategy-meta">
             <div class="strategy-value">${fmtNum(value)}</div>
             <div class="strategy-pct">${pct}%</div>
-            ${s.id !== 'cash' ? `<div class="strategy-pnl ${pctClass(pnl)}">${fmtPct(pnl)}</div>` : ''}
+            ${s.id !== 'cash' ? `<div class="strategy-pnl ${pctClass(weightedReturn)}">${fmtPct(weightedReturn)}</div>` : ''}
           </div>
           ${s.id !== 'cash' && s.id !== 'dca' && s.id !== 'wheel' && s.id !== 'leaps' ? `<button class="btn-delete-strategy" onclick="event.stopPropagation(); confirmDeleteStrategy('${s.id}','${s.name.replace(/'/g, "\\'")}')" title="删除策略">🗑️</button>` : ''}
           ${isDraggable ? `<div class="strategy-drag-handle" style="color:var(--text-dim);font-size:1rem;padding:0 6px;cursor:grab" title="拖动排序">⋮⋮</div>` : ''}
