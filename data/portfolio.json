@@ -126,9 +126,29 @@
       "pnl_pct": -42.86,
       "wheel_type": "sell_put",
       "status": "等待行权"
+    },
+    {
+      "id": "90fe83b5",
+      "symbol": "AAPL",
+      "strategy": "leaps",
+      "notes": "",
+      "strike": 200.0,
+      "expiry": "2028-01-20",
+      "option_type": "call",
+      "contracts": 3,
+      "quantity": 300,
+      "stock_price": 195.0,
+      "premium": 15.0,
+      "buy_price": 15.0,
+      "current_option_price": 15.0,
+      "delta": 0.65,
+      "market_value": 4500.0,
+      "pnl": 0,
+      "pnl_pct": 0,
+      "wheel_type": "leaps_long"
     }
   ],
-  "cash_base_usd": 170699.0,
+  "cash_base_usd": 166197.05,
   "cash_flows": [],
   "pnl_baselines": {}
 }
