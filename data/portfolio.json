@@ -104,9 +104,22 @@
       "wheel_type": "sell_put",
       "status": "等待行权",
       "open_date": ""
+    },
+    {
+      "id": "2b2c6055",
+      "symbol": "VOO",
+      "strategy": "dca",
+      "notes": "",
+      "open_date": "2026-06-14",
+      "quantity": 100.0,
+      "avg_price": 20.0,
+      "current_price": 20.0,
+      "market_value": 2000.0,
+      "pnl": 0.0,
+      "pnl_pct": 0.0
     }
   ],
-  "cash_base_usd": 266482.55,
+  "cash_base_usd": 264482.2,
   "cash_flows": [],
   "pnl_baselines": {},
   "history": [
