@@ -106,36 +106,7 @@
   "cash_base_usd": 228193.55,
   "cash_flows": [],
   "pnl_baselines": {},
-  "history": [
-    {
-      "id": "hist_599f6c0e",
-      "date": "2026-06-14",
-      "symbol": "AAPL",
-      "action": "BUY",
-      "quantity": 400.0,
-      "price": 20.0,
-      "cost_price": 0,
-      "pnl": 0,
-      "strategy": "dca",
-      "note": "DCA加仓 400.0股 @20.00",
-      "commission": 1.4,
-      "fees": 0
-    },
-    {
-      "id": "hist_f5cfb480",
-      "date": "2026-06-14",
-      "symbol": "AAPL",
-      "action": "SELL",
-      "quantity": 500.0,
-      "price": 200.0,
-      "cost_price": 76.0,
-      "pnl": 62000.0,
-      "note": "DCA卖出 500.0股（成本76.00）",
-      "strategy": "dca",
-      "commission": 1.75,
-      "fees": 2.86
-    }
-  ],
+  "history": [],
   "realized_profits": {
     "dca": 62000.0
   }
