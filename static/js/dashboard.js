@@ -362,7 +362,7 @@ function renderStrategies() {
                         <div>${tagHtml}</div>
                         <div class="holding-info-row">
                           <span>K${p.strike} · ${p.expiry} · ${daysToExpiry(p.expiry)}</span>
-                          <span class="stock-price-tag">当前价: <span class="${(p.stock_price || 0) > 0 ? 'green' : ''}">$${(p.stock_price || 0).toFixed(0)}</span></span>
+                          <span class="stock-price-tag">股价: <span class="${(p.stock_price || 0) > 0 ? 'green' : ''}">$${(p.stock_price || 0).toFixed(0)}</span></span>
                           <span>${absContracts}${isSold ? '张(卖)' : '张(买)'}</span>
                           <span>Δ${p.delta || '-'}</span>
                           ${extraInfo}
@@ -459,7 +459,7 @@ function renderAddPositionForm(stratId) {
         <input class="input-contracts" id="add-contracts-${stratId}" type="number" step="1" placeholder="合约(负=卖)" style="width:85px">
         <input class="input-premium" id="add-premium-${stratId}" type="number" step="any" placeholder="权利金/张" style="width:80px">
         <input class="input-delta" id="add-delta-${stratId}" type="number" step="0.01" placeholder="Delta" style="width:65px">
-        <input class="input-stock-price" id="add-stock-price-${stratId}" type="number" step="any" placeholder="股价" style="width:65px">
+        <input class="input-stock-price" id="add-stock-price-${stratId}" type="number" step="any" placeholder="当前价" style="width:65px">
         <button class="btn btn-sm btn-primary" onclick="addPositionToStrategy('${stratId}')">添加</button>
       </div>
       ${profitSourceSelect}
