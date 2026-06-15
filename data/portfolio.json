@@ -117,25 +117,6 @@
       "open_price": 5.8
     },
     {
-      "id": "l2",
-      "symbol": "META",
-      "strategy": "leaps",
-      "strike": 600,
-      "expiry": "2027-01-15",
-      "contracts": 3,
-      "quantity": 300,
-      "buy_price": 32.5,
-      "current_option_price": 58.2,
-      "stock_price": 565.8,
-      "market_value": 17460,
-      "pnl": 7710.0,
-      "pnl_pct": 79.08,
-      "delta": 0.55,
-      "notes": "2027 LEAPS Call",
-      "open_date": "",
-      "open_price": 32.5
-    },
-    {
       "id": "p9",
       "symbol": "TSLA",
       "strategy": "swing",
@@ -202,7 +183,7 @@
       "close_date": "2026-06-15",
       "pnl": -3360.0,
       "pnl_pct": -525.0,
-      "commission": 0.9,
+      "commission": 0.8,
       "fees": 0.1,
       "status": "已平仓",
       "action": "CLOSE",
@@ -223,7 +204,7 @@
       "close_date": "2026-06-15",
       "pnl": 1400.0,
       "pnl_pct": 77.78,
-      "commission": 2.0,
+      "commission": 1.8,
       "fees": 0.2,
       "status": "已平仓",
       "action": "CLOSE",
@@ -244,7 +225,7 @@
       "close_date": "2026-06-15",
       "pnl": -4440.0,
       "pnl_pct": -284.62,
-      "commission": 1.65,
+      "commission": 1.5,
       "fees": 0.15,
       "status": "已平仓",
       "action": "CLOSE",
@@ -270,12 +251,33 @@
       "status": "已平仓",
       "action": "CLOSE",
       "notes": ""
+    },
+    {
+      "id": "h_3ebdc3f5",
+      "symbol": "META",
+      "strategy": "leaps",
+      "wheel_type": "",
+      "strike": 600,
+      "expiry": "2027-01-15",
+      "contracts": 3,
+      "open_price": 32.5,
+      "close_price": 1.0,
+      "open_delta": 0.55,
+      "open_date": "",
+      "close_date": "2026-06-15",
+      "pnl": -9450.0,
+      "pnl_pct": -96.92,
+      "commission": 1.95,
+      "fees": 0.15,
+      "status": "已平仓",
+      "action": "CLOSE",
+      "notes": ""
     }
   ],
   "cash_flows": [],
-  "cash_base_usd": 42450.9,
+  "cash_base_usd": 42748.8,
   "realized_profits": {
     "wheel": -6400.0,
-    "leaps": 8840.0
+    "leaps": -610.0
   }
 }
