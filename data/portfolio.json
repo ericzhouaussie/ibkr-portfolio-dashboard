@@ -73,9 +73,22 @@
       "market_value": 2000.0,
       "pnl": 0.0,
       "pnl_pct": 0.0
+    },
+    {
+      "id": "4b266913",
+      "symbol": "AAPL",
+      "strategy": "dca",
+      "notes": "",
+      "open_date": "2026-06-15",
+      "quantity": 100.0,
+      "avg_price": 20.0,
+      "current_price": 20.0,
+      "market_value": 2000.0,
+      "pnl": 0.0,
+      "pnl_pct": 0.0
     }
   ],
-  "cash_base_usd": 288900.4,
+  "cash_base_usd": 286900.05,
   "cash_flows": [],
   "pnl_baselines": {},
   "history": [
