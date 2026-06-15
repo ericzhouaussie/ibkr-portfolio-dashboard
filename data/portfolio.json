@@ -265,8 +265,8 @@
       "open_price": 5.2,
       "buy_price": 5.2,
       "market_value": 1560.0,
-      "pnl": 0,
-      "pnl_pct": 0,
+      "pnl": -0.0,
+      "pnl_pct": -0.0,
       "wheel_type": "sell_call",
       "status": "等待行权"
     }
