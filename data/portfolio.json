@@ -202,29 +202,6 @@
       "pnl_pct": -0.0,
       "wheel_type": "long_put",
       "status": "持有"
-    },
-    {
-      "id": "14a3d2cd",
-      "symbol": "QQQ",
-      "strategy": "wheel",
-      "notes": "",
-      "open_date": "2026-06-15",
-      "strike": 450.0,
-      "expiry": "2026-07-18",
-      "option_type": "call",
-      "contracts": -3,
-      "quantity": 300,
-      "stock_price": 0.0,
-      "premium": 5.2,
-      "current_option_price": 5.2,
-      "delta": 0.25,
-      "open_price": 5.2,
-      "buy_price": 5.2,
-      "market_value": 1560.0,
-      "pnl": -0.0,
-      "pnl_pct": -0.0,
-      "wheel_type": "sell_call",
-      "status": "等待行权"
     }
   ],
   "cash": 35000,
@@ -244,7 +221,7 @@
       "close_date": "2026-06-15",
       "pnl": -3360.0,
       "pnl_pct": -525.0,
-      "commission": 1.2,
+      "commission": 1.1,
       "fees": 0.1,
       "status": "已平仓",
       "action": "CLOSE",
@@ -265,16 +242,37 @@
       "close_date": "2026-06-15",
       "pnl": 1400.0,
       "pnl_pct": 77.78,
-      "commission": 2.6,
+      "commission": 2.4,
       "fees": 0.2,
+      "status": "已平仓",
+      "action": "CLOSE",
+      "notes": ""
+    },
+    {
+      "id": "h_eff3f8ba",
+      "symbol": "QQQ",
+      "strategy": "wheel",
+      "wheel_type": "sell_call",
+      "strike": 450.0,
+      "expiry": "2026-07-18",
+      "contracts": -3,
+      "open_price": 5.2,
+      "close_price": 20.0,
+      "open_delta": 0.25,
+      "open_date": "2026-06-15",
+      "close_date": "2026-06-15",
+      "pnl": -4440.0,
+      "pnl_pct": -284.62,
+      "commission": 1.95,
+      "fees": 0.15,
       "status": "已平仓",
       "action": "CLOSE",
       "notes": ""
     }
   ],
   "cash_flows": [],
-  "cash_base_usd": 30454.4,
+  "cash_base_usd": 24452.3,
   "realized_profits": {
-    "wheel": -1960.0
+    "wheel": -6400.0
   }
 }
