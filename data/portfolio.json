@@ -52,7 +52,8 @@
       "market_value": 29280,
       "pnl": 2955,
       "pnl_pct": 11.22,
-      "notes": ""
+      "notes": "",
+      "open_date": ""
     },
     {
       "id": "p2",
@@ -64,7 +65,8 @@
       "market_value": 35648,
       "pnl": 2848,
       "pnl_pct": 8.68,
-      "notes": ""
+      "notes": "",
+      "open_date": ""
     },
     {
       "id": "p3",
@@ -76,7 +78,8 @@
       "market_value": 24915,
       "pnl": 1915,
       "pnl_pct": 8.33,
-      "notes": "大盘ETF"
+      "notes": "大盘ETF",
+      "open_date": ""
     },
     {
       "id": "p4",
@@ -88,7 +91,8 @@
       "market_value": 16674,
       "pnl": 1074,
       "pnl_pct": 6.88,
-      "notes": "S&P500 ETF"
+      "notes": "S&P500 ETF",
+      "open_date": ""
     },
     {
       "id": "w1",
@@ -98,17 +102,19 @@
       "strike": 185,
       "expiry": "2026-07-18",
       "premium": 3.2,
-      "contracts": 2,
+      "contracts": -2,
       "quantity": 200,
       "stock_price": 195.5,
       "cost_basis": 181.8,
       "current_option_price": 0.45,
       "market_value": 39100,
-      "pnl": 640,
-      "pnl_pct": 1.83,
+      "pnl": 550.0,
+      "pnl_pct": 85.94,
       "status": "等待行权",
       "delta": -0.25,
-      "notes": ""
+      "notes": "",
+      "open_date": "",
+      "open_price": 3.2
     },
     {
       "id": "w2",
@@ -118,17 +124,19 @@
       "strike": 185,
       "expiry": "2026-08-15",
       "premium": 4.5,
-      "contracts": 4,
+      "contracts": -4,
       "quantity": 400,
       "stock_price": 178.6,
       "cost_basis": 150.7,
       "current_option_price": 6.2,
       "market_value": 71440,
-      "pnl": 1800,
-      "pnl_pct": 2.59,
+      "pnl": -680.0,
+      "pnl_pct": -37.78,
       "status": "卖Covered Call",
       "delta": -0.35,
-      "notes": ""
+      "notes": "",
+      "open_date": "",
+      "open_price": 4.5
     },
     {
       "id": "w3",
@@ -138,17 +146,19 @@
       "strike": 240,
       "expiry": "2026-06-20",
       "premium": 5.8,
-      "contracts": 1,
+      "contracts": -1,
       "quantity": 100,
       "stock_price": 268.4,
       "cost_basis": 234.2,
       "current_option_price": 0.12,
       "market_value": 26840,
-      "pnl": 580,
-      "pnl_pct": 2.21,
+      "pnl": 568.0,
+      "pnl_pct": 97.93,
       "status": "等待行权",
       "delta": -0.15,
-      "notes": ""
+      "notes": "",
+      "open_date": "",
+      "open_price": 5.8
     },
     {
       "id": "l1",
@@ -162,10 +172,12 @@
       "current_option_price": 82.5,
       "stock_price": 1050.3,
       "market_value": 16500,
-      "pnl": 7340,
+      "pnl": 7340.0,
       "pnl_pct": 80.13,
       "delta": 0.65,
-      "notes": "2028 LEAPS Call"
+      "notes": "2028 LEAPS Call",
+      "open_date": "",
+      "open_price": 45.8
     },
     {
       "id": "l2",
@@ -179,10 +191,12 @@
       "current_option_price": 58.2,
       "stock_price": 565.8,
       "market_value": 17460,
-      "pnl": 3810,
-      "pnl_pct": 39.08,
+      "pnl": 7710.0,
+      "pnl_pct": 79.08,
       "delta": 0.55,
-      "notes": "2027 LEAPS Call"
+      "notes": "2027 LEAPS Call",
+      "open_date": "",
+      "open_price": 32.5
     },
     {
       "id": "p9",
@@ -194,7 +208,8 @@
       "market_value": 4026,
       "pnl": 351,
       "pnl_pct": 9.55,
-      "notes": "短线持有"
+      "notes": "短线持有",
+      "open_date": ""
     },
     {
       "id": "p10",
@@ -206,7 +221,8 @@
       "market_value": 5046,
       "pnl": 396,
       "pnl_pct": 8.52,
-      "notes": ""
+      "notes": "",
+      "open_date": ""
     },
     {
       "id": "02f4a344",
@@ -217,7 +233,7 @@
       "strike": 500.0,
       "expiry": "2026-08-15",
       "option_type": "put",
-      "contracts": 2,
+      "contracts": -2,
       "quantity": 200,
       "stock_price": 0.0,
       "premium": 8.5,
@@ -226,14 +242,37 @@
       "open_price": 8.5,
       "buy_price": 8.5,
       "market_value": 1700.0,
-      "pnl": 0,
-      "pnl_pct": 0,
+      "pnl": -0.0,
+      "pnl_pct": -0.0,
       "wheel_type": "long_put",
       "status": "持有"
+    },
+    {
+      "id": "14a3d2cd",
+      "symbol": "QQQ",
+      "strategy": "wheel",
+      "notes": "",
+      "open_date": "2026-06-15",
+      "strike": 450.0,
+      "expiry": "2026-07-18",
+      "option_type": "call",
+      "contracts": -3,
+      "quantity": 300,
+      "stock_price": 0.0,
+      "premium": 5.2,
+      "current_option_price": 5.2,
+      "delta": 0.25,
+      "open_price": 5.2,
+      "buy_price": 5.2,
+      "market_value": 1560.0,
+      "pnl": 0,
+      "pnl_pct": 0,
+      "wheel_type": "sell_call",
+      "status": "等待行权"
     }
   ],
   "cash": 35000,
   "history": [],
   "cash_flows": [],
-  "cash_base_usd": 33298.6
+  "cash_base_usd": 34858.6
 }
