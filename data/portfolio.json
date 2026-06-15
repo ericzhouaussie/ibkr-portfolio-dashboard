@@ -282,29 +282,6 @@
       "pnl_pct": -0.0,
       "wheel_type": "sell_put",
       "status": "等待行权"
-    },
-    {
-      "id": "6ff172ca",
-      "symbol": "NVDA",
-      "strategy": "leaps",
-      "notes": "",
-      "open_date": "2026-06-15",
-      "strike": 100.0,
-      "expiry": "2026-12-31",
-      "option_type": "put",
-      "contracts": -1,
-      "quantity": 100,
-      "stock_price": 0.0,
-      "premium": 10.0,
-      "current_option_price": 10.0,
-      "delta": 0.0,
-      "open_price": 10.0,
-      "buy_price": 10.0,
-      "market_value": 1000.0,
-      "pnl": -0.0,
-      "pnl_pct": -0.0,
-      "wheel_type": "sell_put",
-      "status": "等待行权"
     }
   ],
   "cash": 35000,
@@ -324,7 +301,7 @@
       "close_date": "2026-06-15",
       "pnl": -1000.0,
       "pnl_pct": -100.0,
-      "commission": 0.65,
+      "commission": 0.6,
       "fees": 0.05,
       "status": "已平仓",
       "action": "CLOSE",
@@ -345,7 +322,7 @@
       "close_date": "2026-06-15",
       "pnl": 900.0,
       "pnl_pct": 90.0,
-      "commission": 0.7,
+      "commission": 0.65,
       "fees": 0.05,
       "status": "已平仓",
       "action": "CLOSE",
@@ -366,6 +343,27 @@
       "close_date": "2026-06-15",
       "pnl": -1000.0,
       "pnl_pct": -100.0,
+      "commission": 0.95,
+      "fees": 0.05,
+      "status": "已平仓",
+      "action": "CLOSE",
+      "notes": ""
+    },
+    {
+      "id": "h_00ecd425",
+      "symbol": "NVDA",
+      "strategy": "leaps",
+      "wheel_type": "sell_put",
+      "strike": 100.0,
+      "expiry": "2026-12-31",
+      "contracts": -1,
+      "open_price": 10.0,
+      "close_price": 20.0,
+      "open_delta": 0.0,
+      "open_date": "2026-06-15",
+      "close_date": "2026-06-15",
+      "pnl": -1000.0,
+      "pnl_pct": -100.0,
       "commission": 1.0,
       "fees": 0.05,
       "status": "已平仓",
@@ -374,10 +372,10 @@
     }
   ],
   "cash_flows": [],
-  "cash_base_usd": 88890.9,
+  "cash_base_usd": 86889.85,
   "realized_profits": {
     "dca": 26175.0,
     "wheel": -1580.0,
-    "leaps": -1000.0
+    "leaps": -2000.0
   }
 }
