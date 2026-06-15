@@ -571,8 +571,8 @@ def add_position():
                     "pnl": 0,
                     "strategy": position["strategy"],
                     "note": f"{position['strategy'].upper()}加仓 {new_qty}股 @{new_avg:.2f}",
-                    "commission": calc_commission(new_qty, new_avg)["total_cost"],
-                    "fees": 0,
+                    "commission": calc_commission(new_qty, new_avg)["commission"],
+                    "fees": calc_commission(new_qty, new_avg)["fees"],
                 })
                 merged = True
                 position = p
@@ -957,9 +957,8 @@ def close_position(pos_id):
             "close_date": close_date,
             "pnl": pnl,
             "pnl_pct": pnl_pct,
-            "commission": comm["total_cost"],
+            "commission": comm["commission"],
             "fees": comm["fees"],
-            "total_cost": comm["total_cost"],
             "status": "已平仓",
             "action": "CLOSE",
             "notes": ""
@@ -987,9 +986,8 @@ def close_position(pos_id):
             "close_date": close_date,
             "pnl": pnl,
             "pnl_pct": pnl_pct,
-            "commission": comm["total_cost"],
+            "commission": comm["commission"],
             "fees": comm["fees"],
-            "total_cost": comm["total_cost"],
             "status": "已平仓",
             "action": "CLOSE",
             "notes": ""
@@ -1079,7 +1077,8 @@ def export_history():
             row["到期日"] = h.get("expiry", "")
             row["合约数"] = h.get("contracts", "")
             row["Delta"] = h.get("delta", h.get("open_delta", ""))
-            row["费用"] = h.get("fees", 0)
+            # 费用 = 券商佣金 + 交易所费（开仓/平仓各自完整成本）
+            row["费用"] = round(h.get("commission", 0) + h.get("fees", 0), 2)
         else:
             row["成本价"] = h.get("cost_price", "")
             row["费用"] = h.get("fees", 0)
@@ -1270,7 +1269,7 @@ def sell_position(pos_id):
                 "pnl": round(trade_pnl, 2),
                 "note": f"Swing卖出 {match_qty}股（FIFO成本${trade['price']:.2f}）",
                 "strategy": "swing",
-                "commission": calc_commission(match_qty, sell_price)["total_cost"],
+                "commission": calc_commission(match_qty, sell_price)["commission"],
                 "fees": calc_sell_fees(match_qty, sell_price),
             })
         # Clean empty buy_trades
@@ -1291,7 +1290,7 @@ def sell_position(pos_id):
             "pnl": round(total_pnl, 2),
             "note": f"DCA卖出 {sell_qty}股（成本{avg_cost:.2f}）",
             "strategy": "dca",
-            "commission": calc_commission(sell_qty, sell_price)["total_cost"],
+            "commission": calc_commission(sell_qty, sell_price)["commission"],
             "fees": calc_sell_fees(sell_qty, sell_price),
         })
 
