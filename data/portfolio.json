@@ -82,28 +82,6 @@
       "open_date": ""
     },
     {
-      "id": "w1",
-      "symbol": "AMZN",
-      "strategy": "wheel",
-      "wheel_type": "sell_put",
-      "strike": 185,
-      "expiry": "2026-07-18",
-      "premium": 3.2,
-      "contracts": -2,
-      "quantity": 200,
-      "stock_price": 195.5,
-      "cost_basis": 181.8,
-      "current_option_price": 0.45,
-      "market_value": 39100,
-      "pnl": 550.0,
-      "pnl_pct": 85.94,
-      "status": "等待行权",
-      "delta": -0.25,
-      "notes": "",
-      "open_date": "",
-      "open_price": 3.2
-    },
-    {
       "id": "w2",
       "symbol": "GOOGL",
       "strategy": "wheel",
@@ -243,11 +221,33 @@
       "strategy": "dca",
       "commission": 0.35,
       "fees": 0.08
+    },
+    {
+      "id": "h_fe69ee6f",
+      "symbol": "AMZN",
+      "strategy": "wheel",
+      "wheel_type": "sell_put",
+      "strike": 185,
+      "expiry": "2026-07-18",
+      "contracts": -2,
+      "open_price": 3.2,
+      "close_price": 20.0,
+      "open_delta": -0.25,
+      "open_date": "",
+      "close_date": "2026-06-15",
+      "pnl": -3360.0,
+      "pnl_pct": -525.0,
+      "commission": 1.3,
+      "fees": 0.1,
+      "status": "已平仓",
+      "action": "CLOSE",
+      "notes": ""
     }
   ],
   "cash_flows": [],
-  "cash_base_usd": 87499.3,
+  "cash_base_usd": 83497.9,
   "realized_profits": {
-    "dca": 26175.0
+    "dca": 26175.0,
+    "wheel": -3360.0
   }
 }
