@@ -149,6 +149,17 @@ def load_portfolio():
             p.setdefault("open_date", "")
             for t in p.get("buy_trades", []):
                 t.setdefault("date", "")
+        # 迁移：修正旧 Wheel 平仓记录的 pnl/fees 符号（contracts 为负数导致）
+        for h in data.get("history", []):
+            if h.get("action") == "CLOSE" and h.get("wheel_type") and h.get("contracts", 0) < 0:
+                # pnl 符号反转
+                if "pnl" in h:
+                    h["pnl"] = -h["pnl"]
+                if "pnl_pct" in h:
+                    h["pnl_pct"] = -h["pnl_pct"]
+                # fees 应为正数
+                if h.get("fees", 0) < 0:
+                    h["fees"] = -h["fees"]
         return data
     # First run: seed with default data
     default = dict(DEFAULT_PORTFOLIO)
