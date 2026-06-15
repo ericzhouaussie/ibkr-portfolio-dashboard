@@ -104,9 +104,30 @@
       "pnl_pct": 0,
       "wheel_type": "sell_call",
       "status": "等待行权"
+    },
+    {
+      "id": "c2aaa63d",
+      "symbol": "NVDA",
+      "strategy": "leaps",
+      "notes": "",
+      "open_date": "2026-06-15",
+      "strike": 10.0,
+      "expiry": "2028-12-31",
+      "option_type": "call",
+      "contracts": 1,
+      "quantity": 100,
+      "stock_price": 0.0,
+      "premium": 20.0,
+      "buy_price": 20.0,
+      "current_option_price": 20.0,
+      "delta": 0.0,
+      "market_value": 2000.0,
+      "pnl": 0,
+      "pnl_pct": 0,
+      "wheel_type": "leaps_long"
     }
   ],
-  "cash_base_usd": 298399.35,
+  "cash_base_usd": 296398.7,
   "cash_flows": [],
   "pnl_baselines": {},
   "history": [
