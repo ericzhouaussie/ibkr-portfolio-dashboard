@@ -1189,12 +1189,38 @@ function submitSell(e) {
 
 // === Close Position (平仓) ===
 function closePosition(posId, stratId, symbol) {
+  // 查找持仓的wheel_type，用于显示不同提示
+  const pos = portfolio.positions.find(p => p.id === posId);
   const modal = document.getElementById('close-modal');
   modal.classList.add('active');
   modal.dataset.posId = posId;
   modal.dataset.stratId = stratId;
   document.getElementById('close-symbol').textContent = symbol;
   document.getElementById('close-price').value = '';
+
+  const wheelTypeTag = document.getElementById('close-wheel-type');
+  const priceLabel = document.getElementById('close-price-label');
+  const priceHint = document.getElementById('close-price-hint');
+
+  const wt = pos && pos.wheel_type;
+  if (wt === 'covered_call') {
+    wheelTypeTag.textContent = '🏛️ Covered Call';
+    priceLabel.textContent = '股票价格 (行权时股票现价)';
+    priceHint.textContent = '例: 178.60（Covered Call 被行权时填股票现价）';
+  } else if (wt === 'sell_put') {
+    wheelTypeTag.textContent = '📉 Sell Put';
+    priceLabel.textContent = '平仓价格 (每股期权价格)';
+    priceHint.textContent = '到期作废请填 0';
+  } else if (wt === 'sell_call') {
+    wheelTypeTag.textContent = '📈 Sell Call';
+    priceLabel.textContent = '平仓价格 (每股期权价格)';
+    priceHint.textContent = '到期作废请填 0';
+  } else {
+    wheelTypeTag.textContent = '';
+    priceLabel.textContent = '平仓价格 (每股期权价格)';
+    priceHint.textContent = '例: 0.15';
+  }
+
   document.getElementById('close-price').focus();
 }
 

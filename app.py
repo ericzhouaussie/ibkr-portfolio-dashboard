@@ -957,13 +957,14 @@ def close_position(pos_id):
     
     if is_wheel and position.get("wheel_type"):
         # 卖方期权（sell_put / sell_call / covered_call）统一公式：
-        # 现金变动 = 收到权利金 - 平仓成本 - 佣金
-        # PnL = 收到权利金 - 平仓成本（= open_premium * abs_contracts * 100 - close_price * abs_contracts * 100）
-        # 此公式同时覆盖：到期作废(close=0)、主动平仓(close>0)、被行权(close=0)
+        # 与LEAPS一致：PnL = (平仓价 - 开仓价) × 合约数 × 100
+        # sell_put 到期/被行权：close_price=0 → PnL = (0 - premium) × ... = -premium × ... → 需取绝对值
+        # covered_call 到期：close_price=0 → PnL = (0 - premium) × ... = -premium × ...
+        # covered_call 被行权：close_price=股票现价 → PnL = (stock_price - premium) × ...
         open_premium = position.get("premium", 0)
-        cost = round(close_price * abs_contracts * 100, 2)
-        pnl = round((open_premium * abs_contracts * 100) - cost, 2)
-        pnl_pct = round((pnl / (open_premium * abs_contracts * 100)) * 100, 2) if open_premium > 0 else 0
+        pnl = round((close_price - open_premium) * abs_contracts * 100, 2)
+        cost = abs(open_premium * abs_contracts * 100)
+        pnl_pct = round((pnl / cost) * 100, 2) if cost > 0 else 0
 
         record = {
             "id": generate_id("h_"),
@@ -1101,11 +1102,14 @@ def export_history():
             row["到期日"] = h.get("expiry", "")
             row["合约数"] = h.get("contracts", "")
             row["Delta"] = h.get("delta", h.get("open_delta", ""))
-            # 费用 = 券商佣金 + 交易所费（开仓/平仓各自完整成本）
-            row["费用"] = round(h.get("commission", 0) + h.get("fees", 0), 2)
+            row["券商佣金"] = round(h.get("commission", 0), 2)
+            row["交易所费"] = round(h.get("fees", 0), 2)
+            row["总费用"] = None  # 后续用SUM公式填充
         else:
             row["成本价"] = h.get("cost_price", "")
-            row["费用"] = h.get("fees", 0)
+            row["券商佣金"] = round(h.get("commission", 0), 2)
+            row["交易所费"] = round(h.get("fees", 0), 2)
+            row["总费用"] = None
 
         rows.append(row)
 
@@ -1144,6 +1148,16 @@ def export_history():
                         cell.font = Font(color="16a34a", bold=True)
                     elif cell.value < 0:
                         cell.font = Font(color="dc2626", bold=True)
+
+        # 总费用列：用 SUM 公式 = 券商佣金 + 交易所费
+        cols = list(df.columns)
+        if "总费用" in cols and "券商佣金" in cols and "交易所费" in cols:
+            comm_col = get_column_letter(cols.index("券商佣金") + 1)
+            fees_col = get_column_letter(cols.index("交易所费") + 1)
+            total_col = get_column_letter(cols.index("总费用") + 1)
+            for r in range(2, ws.max_row + 1):
+                ws[f"{total_col}{r}"] = f"={comm_col}{r}+{fees_col}{r}"
+                ws[f"{total_col}{r}"].alignment = Alignment(horizontal="center", vertical="center")
 
         ws.freeze_panes = "A2"
 
