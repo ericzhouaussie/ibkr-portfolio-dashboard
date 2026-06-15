@@ -956,13 +956,25 @@ def close_position(pos_id):
     comm = calc_commission(0, close_price, is_option=True, contracts=abs_contracts)
     
     if is_wheel and position.get("wheel_type"):
-        # 卖方期权（sell_put / sell_call / covered_call）统一公式：
-        # 与LEAPS一致：PnL = (平仓价 - 开仓价) × 合约数 × 100
-        # sell_put 到期/被行权：close_price=0 → PnL = (0 - premium) × ... = -premium × ... → 需取绝对值
-        # covered_call 到期：close_price=0 → PnL = (0 - premium) × ... = -premium × ...
-        # covered_call 被行权：close_price=股票现价 → PnL = (stock_price - premium) × ...
+        # 卖方期权分别处理：sell_put/sell_call vs covered_call 逻辑不同
+        # ── Sell Put / Sell Call ──
+        #   到期作废：PnL = +premium × abs × 100（close_price=0）
+        #   被行权：PnL = (strike - stock_price - premium) × abs × 100
+        #   → 用户平仓弹窗填的是"每股期权价格"（0=到期/被行权）
+        #   → PnL = (open_premium - close_price) × abs × 100 ✅
+        # ── Covered Call ──
+        #   有持股在先：卖Call收入 premium，代价是股价上涨空间被吃掉
+        #   到期作废(close=0)：PnL = +premium × abs × 100
+        #   被行权：PnL = (strike - stock_price + premium) × abs × 100
+        #   → 用户平仓弹窗填的是"股票价格(行权时股票现价)"
+        #   → PnL = (strike + open_premium - close_price) × abs × 100
         open_premium = position.get("premium", 0)
-        pnl = round((close_price - open_premium) * abs_contracts * 100, 2)
+        wheel_type = position.get("wheel_type", "")
+        if wheel_type in ("sell_put", "sell_call"):
+            pnl = round((open_premium - close_price) * abs_contracts * 100, 2)
+        else:  # covered_call
+            strike = position.get("strike", 0)
+            pnl = round((strike + open_premium - close_price) * abs_contracts * 100, 2)
         cost = abs(open_premium * abs_contracts * 100)
         pnl_pct = round((pnl / cost) * 100, 2) if cost > 0 else 0
 
@@ -987,9 +999,12 @@ def close_position(pos_id):
             "action": "CLOSE",
             "notes": ""
         }
-        # Wheel平仓：现金 -= 权利金收入 - 平仓成本 + 佣金
-        cash_delta = open_premium * abs_contracts * 100 - close_price * abs_contracts * 100 + comm["total_cost"]
-        portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) - cash_delta, 2)
+        # 卖方平仓现金变动：收到权利金 - 平仓付出 - 佣金
+        # = open_premium*abs*100 - close_price*abs*100 - total_commission
+        # = -PnL - total_commission（PnL为正时盈利=净收入，PnL为负时亏损=净支出）
+        portfolio["cash_base_usd"] = round(
+            portfolio.get("cash_base_usd", 0) - pnl - comm["total_cost"], 2
+        )
     else:
         # 通用期权平仓（LEAPS/自定义期权仓）
         open_price = position.get("buy_price", position.get("premium", 0))
