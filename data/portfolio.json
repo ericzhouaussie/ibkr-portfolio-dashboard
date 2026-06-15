@@ -60,8 +60,22 @@
       "type": "stock"
     }
   ],
-  "positions": [],
-  "cash_base_usd": 299901.45,
+  "positions": [
+    {
+      "id": "4cdfc822",
+      "symbol": "VOO",
+      "strategy": "dca",
+      "notes": "",
+      "open_date": "2026-06-15",
+      "quantity": 100.0,
+      "avg_price": 100.0,
+      "current_price": 100.0,
+      "market_value": 10000.0,
+      "pnl": 0.0,
+      "pnl_pct": 0.0
+    }
+  ],
+  "cash_base_usd": 289901.1,
   "cash_flows": [],
   "pnl_baselines": {},
   "history": [
