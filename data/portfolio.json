@@ -82,9 +82,31 @@
       "pnl_pct": 0,
       "wheel_type": "sell_put",
       "status": "等待行权"
+    },
+    {
+      "id": "bbb2cbaa",
+      "symbol": "META",
+      "strategy": "wheel",
+      "notes": "",
+      "open_date": "2026-06-15",
+      "strike": 200.0,
+      "expiry": "2026-12-31",
+      "option_type": "call",
+      "contracts": -1,
+      "quantity": -100,
+      "stock_price": 0.0,
+      "premium": 2.0,
+      "buy_price": 2.0,
+      "current_option_price": 2.0,
+      "delta": 0.0,
+      "market_value": 200.0,
+      "pnl": 0,
+      "pnl_pct": 0,
+      "wheel_type": "sell_call",
+      "status": "等待行权"
     }
   ],
-  "cash_base_usd": 298199.35,
+  "cash_base_usd": 298399.35,
   "cash_flows": [],
   "pnl_baselines": {},
   "history": [
