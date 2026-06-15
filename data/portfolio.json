@@ -60,8 +60,22 @@
       "type": "stock"
     }
   ],
-  "positions": [],
-  "cash_base_usd": 298620.7,
+  "positions": [
+    {
+      "id": "e71a9fba",
+      "symbol": "AAPL",
+      "strategy": "dca",
+      "notes": "",
+      "open_date": "2026-06-15",
+      "quantity": 100.0,
+      "avg_price": 100.0,
+      "current_price": 100.0,
+      "market_value": 10000.0,
+      "pnl": 0.0,
+      "pnl_pct": 0.0
+    }
+  ],
+  "cash_base_usd": 288620.35,
   "cash_flows": [],
   "pnl_baselines": {},
   "history": [],
