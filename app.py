@@ -1051,12 +1051,15 @@ def export_history():
         row["盈亏金额"] = h.get("pnl", 0)
         row["盈亏%"] = h.get("pnl_pct", "")
 
-        if is_option:
-            row["类型"] = h.get("wheel_type", h.get("option_type", ""))
+        # 判断是否为期权记录（开仓或平仓）
+        has_option_fields = h.get("strike") is not None or h.get("contracts") or h.get("wheel_type")
+        if has_option_fields:
+            row["类型"] = h.get("wheel_type", h.get("option_type", "期权"))
             row["行权价"] = h.get("strike", "")
             row["到期日"] = h.get("expiry", "")
             row["合约数"] = h.get("contracts", "")
-            row["Delta"] = h.get("delta", "")
+            row["Delta"] = h.get("delta", h.get("open_delta", ""))
+            row["费用"] = h.get("fees", 0)
         else:
             row["成本价"] = h.get("cost_price", "")
             row["费用"] = h.get("fees", 0)
