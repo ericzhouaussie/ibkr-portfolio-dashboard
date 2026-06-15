@@ -60,22 +60,8 @@
       "type": "stock"
     }
   ],
-  "positions": [
-    {
-      "id": "4cdfc822",
-      "symbol": "VOO",
-      "strategy": "dca",
-      "notes": "",
-      "open_date": "2026-06-15",
-      "quantity": 100.0,
-      "avg_price": 100.0,
-      "current_price": 100.0,
-      "market_value": 10000.0,
-      "pnl": 0.0,
-      "pnl_pct": 0.0
-    }
-  ],
-  "cash_base_usd": 289901.1,
+  "positions": [],
+  "cash_base_usd": 290900.75,
   "cash_flows": [],
   "pnl_baselines": {},
   "history": [
@@ -249,10 +235,25 @@
       "strategy": "dca",
       "commission": 0.35,
       "fees": 0.16
+    },
+    {
+      "id": "hist_0f3c05c9",
+      "date": "2026-06-15",
+      "symbol": "VOO",
+      "action": "SELL",
+      "quantity": 100.0,
+      "price": 10.0,
+      "cost_price": 100.0,
+      "open_date": "2026-06-15",
+      "pnl": -9000.0,
+      "note": "DCA卖出 100.0股（成本100.00）",
+      "strategy": "dca",
+      "commission": 0.35,
+      "fees": 0.04
     }
   ],
   "realized_profits": {
-    "dca": 122000.0,
+    "dca": 113000.0,
     "wheel": 202070.0,
     "leaps": 3000.0
   }
