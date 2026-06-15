@@ -73,9 +73,22 @@
       "market_value": 10000.0,
       "pnl": 0.0,
       "pnl_pct": 0.0
+    },
+    {
+      "id": "527874ee",
+      "symbol": "VOO",
+      "strategy": "dca",
+      "notes": "",
+      "open_date": "2026-06-15",
+      "quantity": 100.0,
+      "avg_price": 100.0,
+      "current_price": 100.0,
+      "market_value": 10000.0,
+      "pnl": 0.0,
+      "pnl_pct": 0.0
     }
   ],
-  "cash_base_usd": 380049.3,
+  "cash_base_usd": 370048.95,
   "cash_flows": [],
   "pnl_baselines": {},
   "history": [
