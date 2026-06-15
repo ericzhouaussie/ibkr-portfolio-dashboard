@@ -29,22 +29,35 @@ PORTFOLIO_FILE = DATA_DIR / "portfolio.json"
 TARGET_FILE = DATA_DIR / "target_allocation.json"
 
 # === IBKR 佣金费率配置（阶梯式 Tiered）===
+# 期权阶梯式（美股期权，USD结算）
+# https://www.interactivebrokers.com/en/pricing/stock-options.php
+# Tier 1: 0-10,000 合约/月 → $0.65/合约
+# Tier 2: 10,001-50,000 合约/月 → $0.50/合约
+# Tier 3: 50,001-100,000 合约/月 → $0.25/合约
+# Tier 4: 100,001+ 合约/月 → $0.15/合约
+# 每笔最低 $1.00（券商佣金+交易所费用叠加），单笔订单最低 $0.35
+OPTION_TIER_RATES = {
+    1:  {"max_contracts": 10000,  "per_contract": 0.65},
+    2:  {"max_contracts": 50000,  "per_contract": 0.50},
+    3:  {"max_contracts": 100000, "per_contract": 0.25},
+    4:  {"max_contracts": float("inf"), "per_contract": 0.15},
+}
+OPTION_MIN_PER_ORDER = 1.00      # 每笔订单最低（含券商佣金+交易所费用）
+OPTION_EXCHANGE_FEE = 0.05         # 交易所/清算所收取的 per-contract 费用（近似均值）
+
 COMMISSION_CONFIG = {
-    # 阶梯式佣金 (Tiered)
-    "stock_per_share": 0.0035,      # 美股每股 $0.0035（<10万股/月）
-    "stock_min_per_order": 0.35,    # 最低 $0.35/笔
+    # 股票阶梯式佣金 (Tiered)
+    "stock_per_share": 0.0035,    # 美股每股 $0.0035（<10万股/月）
+    "stock_min_per_order": 0.35,   # 最低 $0.35/笔
     "stock_max_pct": 0.005,        # 最高交易额的 0.5%
-    # 期权阶梯式
-    "option_per_contract": 0.65,   # 每份合约 $0.65（<10万合约/月）
-    "option_min_per_order": 0.35,   # 最低 $0.35/笔
     # SEC/FINRA/TAF 等监管费（正股卖出时）
-    "sec_fee_rate": 0.0000278,     # SEC fee ~0.00278% of sell amount
+    "sec_fee_rate": 0.0000278,      # SEC fee ~0.00278% of sell amount
     "taf_per_share": 0.000166,     # TAF (FINRA) ~$0.000166/share
     "finra_taf_min": 0.01,         # FINRA TAF 最低 $0.01
 }
 
 def calc_commission(quantity, price, is_option=False, contracts=None):
-    """计算单笔交易佣金（含税费）
+    """"计算单笔交易佣金（含税费）
     
     参数:
         quantity: 股数（正股）
@@ -54,10 +67,17 @@ def calc_commission(quantity, price, is_option=False, contracts=None):
     返回: {commission: float, fees: float, total_cost: float}
     """
     if is_option and contracts:
-        # 期权佣金
-        commission = max(COMMISSION_CONFIG["option_min_per_order"],
-                        COMMISSION_CONFIG["option_per_contract"] * contracts)
-        return {"commission": round(commission, 2), "fees": 0, "total_cost": round(commission, 2)}
+        # 期权阶梯式费率（默认 Tier 1，0-10k 合约/月）
+        per_contract = OPTION_TIER_RATES[1]["per_contract"]  # 实际应按月总合约量分级，此处保守用 Tier1
+        broker_commission = per_contract * contracts
+        # 交易所/清算所费用（per-contract，含 OCC 执行费和清算费）
+        exchange_fees = OPTION_EXCHANGE_FEE * contracts
+        total = max(OPTION_MIN_PER_ORDER, broker_commission)
+        return {
+            "commission": round(total, 2),
+            "fees": round(exchange_fees, 2),
+            "total_cost": round(total + exchange_fees, 2)
+        }
     
     # 正股佣金
     trade_value = abs(quantity) * price
