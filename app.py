@@ -157,9 +157,15 @@ def load_portfolio():
                     h["pnl"] = -h["pnl"]
                 if "pnl_pct" in h:
                     h["pnl_pct"] = -h["pnl_pct"]
-                # fees 应为正数
-                if h.get("fees", 0) < 0:
-                    h["fees"] = -h["fees"]
+                # fees 应为正数；同时修正 commission（旧值含 fees，需减去）
+                old_fees = h.get("fees", 0)
+                if old_fees < 0:
+                    h["fees"] = -old_fees
+                # 旧数据 commission 字段存的是 total_cost（券商+交易所费）
+                # 需减去 fees 得到纯券商佣金
+                if h.get("fees", 0) > 0 and h.get("commission", 0) > h["fees"]:
+                    # 旧数据：commission 是 total_cost，减去 fees 得到纯券商佣金
+                    h["commission"] = round(h.get("commission", 0) - h["fees"], 2)
         return data
     # First run: seed with default data
     default = dict(DEFAULT_PORTFOLIO)
