@@ -60,22 +60,8 @@
       "type": "stock"
     }
   ],
-  "positions": [
-    {
-      "id": "4978a3f9",
-      "symbol": "AAPL",
-      "strategy": "dca",
-      "notes": "",
-      "open_date": "2026-06-15",
-      "quantity": 100.0,
-      "avg_price": 100.0,
-      "current_price": 100.0,
-      "market_value": 10000.0,
-      "pnl": 0.0,
-      "pnl_pct": 0.0
-    }
-  ],
-  "cash_base_usd": 367834.95,
+  "positions": [],
+  "cash_base_usd": 387834.6,
   "cash_flows": [],
   "pnl_baselines": {},
   "history": [
@@ -209,10 +195,25 @@
       "strategy": "dca",
       "commission": 0.35,
       "fees": 0.04
+    },
+    {
+      "id": "hist_043b6e1f",
+      "date": "2026-06-15",
+      "symbol": "AAPL",
+      "action": "SELL",
+      "quantity": 100.0,
+      "price": 200.0,
+      "cost_price": 100.0,
+      "open_date": "2026-06-15",
+      "pnl": 10000.0,
+      "note": "DCA卖出 100.0股（成本100.00）",
+      "strategy": "dca",
+      "commission": 0.35,
+      "fees": 0.57
     }
   ],
   "realized_profits": {
-    "dca": 192000.0,
+    "dca": 202000.0,
     "wheel": 204870.0,
     "leaps": 1110.0
   }
