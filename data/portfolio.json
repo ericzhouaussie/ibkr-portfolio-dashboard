@@ -82,28 +82,6 @@
       "open_date": ""
     },
     {
-      "id": "w2",
-      "symbol": "GOOGL",
-      "strategy": "wheel",
-      "wheel_type": "covered_call",
-      "strike": 185,
-      "expiry": "2026-08-15",
-      "premium": 4.5,
-      "contracts": -4,
-      "quantity": 400,
-      "stock_price": 178.6,
-      "cost_basis": 150.7,
-      "current_option_price": 6.2,
-      "market_value": 71440,
-      "pnl": -680.0,
-      "pnl_pct": -37.78,
-      "status": "卖Covered Call",
-      "delta": -0.35,
-      "notes": "",
-      "open_date": "",
-      "open_price": 4.5
-    },
-    {
       "id": "l1",
       "symbol": "NVDA",
       "strategy": "leaps",
@@ -215,7 +193,7 @@
       "close_date": "2026-06-15",
       "pnl": -3360.0,
       "pnl_pct": -525.0,
-      "commission": 1.2,
+      "commission": 1.1,
       "fees": 0.1,
       "status": "已平仓",
       "action": "CLOSE",
@@ -236,17 +214,38 @@
       "close_date": "2026-06-15",
       "pnl": 480.0,
       "pnl_pct": 82.76,
-      "commission": 1.0,
+      "commission": 0.95,
       "fees": 0.05,
+      "status": "已平仓",
+      "action": "CLOSE",
+      "notes": ""
+    },
+    {
+      "id": "h_c750f4d3",
+      "symbol": "GOOGL",
+      "strategy": "wheel",
+      "wheel_type": "covered_call",
+      "strike": 185,
+      "expiry": "2026-08-15",
+      "contracts": -4,
+      "open_price": 4.5,
+      "close_price": 1.0,
+      "open_delta": -0.35,
+      "open_date": "",
+      "close_date": "2026-06-15",
+      "pnl": 1400.0,
+      "pnl_pct": 77.78,
+      "commission": 2.6,
+      "fees": 0.2,
       "status": "已平仓",
       "action": "CLOSE",
       "notes": ""
     }
   ],
   "cash_flows": [],
-  "cash_base_usd": 83396.85,
+  "cash_base_usd": 82994.05,
   "realized_profits": {
     "dca": 26175.0,
-    "wheel": -2880.0
+    "wheel": -1480.0
   }
 }
