@@ -232,8 +232,8 @@
       "open_price": 10.0,
       "buy_price": 10.0,
       "market_value": 1000.0,
-      "pnl": 0,
-      "pnl_pct": 0,
+      "pnl": -0.0,
+      "pnl_pct": -0.0,
       "wheel_type": "sell_put",
       "status": "等待行权"
     }
