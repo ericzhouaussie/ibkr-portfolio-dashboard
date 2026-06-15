@@ -140,6 +140,8 @@ DEFAULT_PORTFOLIO = {
     "cash_base_usd": 35000,
 }
 
+SELLER_TYPES = ("sell_put", "sell_call", "covered_call")
+
 def load_portfolio():
     if PORTFOLIO_FILE.exists():
         data = json.loads(PORTFOLIO_FILE.read_text(encoding="utf-8"))
@@ -149,6 +151,11 @@ def load_portfolio():
             p.setdefault("open_date", "")
             for t in p.get("buy_trades", []):
                 t.setdefault("date", "")
+        # 迁移：卖方期权的 contracts 存为负数（统一 PnL 公式）
+        for pos in data.get("positions", []):
+            if pos.get("type") == "option" and pos.get("contracts", 0) > 0:
+                if pos.get("wheel_type") in SELLER_TYPES:
+                    pos["contracts"] = -abs(pos["contracts"])
         # 迁移：修正旧 Wheel 平仓记录的 pnl/fees 符号（contracts 为负数导致）
         for h in data.get("history", []):
             if h.get("action") == "CLOSE" and h.get("wheel_type") and h.get("contracts", 0) < 0:
@@ -166,6 +173,8 @@ def load_portfolio():
                 if h.get("fees", 0) > 0 and h.get("commission", 0) > h["fees"]:
                     # 旧数据：commission 是 total_cost，减去 fees 得到纯券商佣金
                     h["commission"] = round(h.get("commission", 0) - h["fees"], 2)
+        # 迁移后落盘
+        save_portfolio(data)
         return data
     # First run: seed with default data
     default = dict(DEFAULT_PORTFOLIO)
@@ -495,19 +504,36 @@ def add_position():
         position["strike"] = float(data.get("strike", 0))
         position["expiry"] = data.get("expiry", "")
         position["option_type"] = data.get("option_type", "put")  # put 或 call
-        position["contracts"] = int(data.get("contracts", 1))
-        position["quantity"] = position["contracts"] * 100
-        position["stock_price"] = float(data.get("stock_price", 0))
-        # premium = 用户输入的单张权利金（总权利金 = premium * 100 * |contracts|）
+        contracts_raw = int(data.get("contracts", 1))
         premium_per_share = float(data.get("premium", 0))
+        # 统一 PnL 公式：卖方 contracts 存为负数（表示空头）
+        # 用户输入正数，代码判断方向后转为负数
+        # 策略为 wheel 时，按 wheel_type 判断买卖方向
+        wheel_type_from_action = None
+        if contracts_raw < 0:
+            # 用户显式输入负数，按符号来
+            wheel_type_from_action = position["option_type"]
+        # 自动判断 wheel 策略下的方向
+        if position["strategy"] == "wheel":
+            # wheel 策略下，正数=买期权，负数=卖期权（由用户决定）
+            contracts = contracts_raw
+            if contracts_raw < 0:
+                wheel_type_from_action = "sell_put" if position["option_type"] == "put" else "sell_call"
+        else:
+            # 非 wheel 策略（自定义期权仓）：正数=买，负数=卖
+            contracts = contracts_raw
+        position["contracts"] = contracts
+        position["quantity"] = abs(contracts) * 100
+        position["stock_price"] = float(data.get("stock_price", 0))
         position["premium"] = premium_per_share
-        position["buy_price"] = premium_per_share
         position["current_option_price"] = premium_per_share
         position["delta"] = float(data.get("delta", 0))
-        # 判断方向：正数=买期权，负数=卖期权
-        is_sold = position["contracts"] < 0
-        abs_contracts = abs(position["contracts"])
-        # 市场价值 = 当前期权价 * 100 * 合约数（卖期权时为负值表示负债）
+        abs_contracts = abs(contracts)
+        is_sold = contracts < 0
+        # open_price 统一为开仓价：买方=买入成本，卖方=收取的权利金
+        position["open_price"] = premium_per_share
+        position["buy_price"] = premium_per_share
+        # 市场价值 = 当前期权价 * 100 * |contracts|（卖期权时为负值表示负债）
         position["market_value"] = round(premium_per_share * 100 * abs_contracts, 2)
         # 盈亏初始化为0（开仓时）
         position["pnl"] = 0
@@ -881,29 +907,19 @@ def update_option_price():
     else:
         opt_price = pos.get("current_option_price", 0)
 
+    # 统一浮动盈亏公式：pnl = (opt_price - open_price) × contracts × 100
+    # contracts 包含符号（买方正、卖方负），公式自动得出正确方向
     contracts = pos.get("contracts", 1)
-    premium = pos.get("premium", pos.get("buy_price", 0))  # 单张权利金
     abs_contracts = abs(contracts)
-    wheel_type = pos.get("wheel_type", "")
-    # 卖方期权（sell_put/sell_call/covered_call）：权利金-当前价；买方期权：当前价-买入价
-    is_sold_opt = wheel_type in ("sell_put", "sell_call", "covered_call") or contracts < 0
-    
-    # 卖期权（空头）：盈亏 = (收入权利金 - 当前期权价) * 100 * 合约数
-    #   例子：卖Put，收到premium $3，当前价$2 → 盈利$1/张
-    #   例子：卖Call，收到premium $4.50，当前价$6.20 → 亏损$1.70/张
-    # 买期权（多头）：盈亏 = (当前期权价 - 买入价) * 100 * 合约数
-    #   例子：买Call，成本$5，当前价$7 → 盈利$2/张
-    if is_sold_opt:
-        pos["pnl"] = round((premium - opt_price) * 100 * abs_contracts, 2)
-        pos["market_value"] = round(opt_price * 100 * abs_contracts, 2)
-        cost = premium * 100 * abs_contracts
-        pos["pnl_pct"] = round((pos["pnl"] / cost) * 100, 2) if cost else 0
-    else:
-        buy_price = premium
-        if buy_price > 0:
-            pos["pnl"] = round((opt_price - buy_price) * 100 * abs_contracts, 2)
-            pos["market_value"] = round(opt_price * 100 * abs_contracts, 2)
-            pos["pnl_pct"] = round(((opt_price / buy_price) - 1) * 100, 2) if buy_price else 0
+    open_price = pos.get("open_price", pos.get("premium", 0))
+    # 卖方期权：pnl = (open_price - opt_price) × abs × 100（权利金 - 当前价）
+    # 买方期权：pnl = (opt_price - open_price) × abs × 100（当前价 - 买入价）
+    # 统一为：pnl = (opt_price - open_price) × contracts × 100
+    if open_price > 0:
+        pos["pnl"] = round((opt_price - open_price) * contracts * 100, 2)
+        pos["market_value"] = round(opt_price * abs_contracts * 100, 2)
+        cost = abs(open_price * contracts * 100)
+        pos["pnl_pct"] = round((pos["pnl"] / cost) * 100, 2) if cost > 0 else 0
 
     save_portfolio(portfolio)
     return jsonify({"success": True, "position": pos, "portfolio": portfolio})
@@ -954,39 +970,26 @@ def close_position(pos_id):
     contracts = position["contracts"]
     abs_contracts = abs(contracts)
     comm = calc_commission(0, close_price, is_option=True, contracts=abs_contracts)
-    
-    if is_wheel and position.get("wheel_type"):
-        # 卖方期权分别处理：sell_put/sell_call vs covered_call 逻辑不同
-        # ── Sell Put / Sell Call ──
-        #   到期作废：PnL = +premium × abs × 100（close_price=0）
-        #   被行权：PnL = (strike - stock_price - premium) × abs × 100
-        #   → 用户平仓弹窗填的是"每股期权价格"（0=到期/被行权）
-        #   → PnL = (open_premium - close_price) × abs × 100 ✅
-        # ── Covered Call ──
-        #   有持股在先：卖Call收入 premium，代价是股价上涨空间被吃掉
-        #   到期作废(close=0)：PnL = +premium × abs × 100
-        #   被行权：PnL = (strike - stock_price + premium) × abs × 100
-        #   → 用户平仓弹窗填的是"股票价格(行权时股票现价)"
-        #   → PnL = (strike + open_premium - close_price) × abs × 100
-        open_premium = position.get("premium", 0)
-        wheel_type = position.get("wheel_type", "")
-        if wheel_type in ("sell_put", "sell_call"):
-            pnl = round((open_premium - close_price) * abs_contracts * 100, 2)
-        else:  # covered_call
-            strike = position.get("strike", 0)
-            pnl = round((strike + open_premium - close_price) * abs_contracts * 100, 2)
-        cost = abs(open_premium * abs_contracts * 100)
+    wheel_type = position.get("wheel_type", "")
+
+    if wheel_type in ("sell_put", "sell_call") or (is_wheel and not wheel_type):
+        # ── 统一 PnL 公式 ──
+        # pnl = (close_price - open_price) × contracts × 100
+        # contracts < 0（卖方），公式自动得出正确方向
+        open_price = position.get("open_price", position.get("premium", 0))
+        pnl = round((close_price - open_price) * contracts * 100, 2)
+        cost = abs(open_price * contracts * 100)
         pnl_pct = round((pnl / cost) * 100, 2) if cost > 0 else 0
 
         record = {
             "id": generate_id("h_"),
             "symbol": position["symbol"],
             "strategy": position["strategy"],
-            "wheel_type": position.get("wheel_type", ""),
+            "wheel_type": wheel_type,
             "strike": position["strike"],
             "expiry": position["expiry"],
             "contracts": contracts,
-            "open_premium": open_premium,
+            "open_price": open_price,
             "close_price": close_price,
             "open_delta": position.get("delta", 0),
             "open_date": position.get("open_date", ""),
@@ -999,19 +1002,54 @@ def close_position(pos_id):
             "action": "CLOSE",
             "notes": ""
         }
-        # 卖方平仓现金变动：收到权利金 - 平仓付出 - 佣金
-        # = open_premium*abs*100 - close_price*abs*100 - total_commission
-        # = -PnL - total_commission（PnL为正时盈利=净收入，PnL为负时亏损=净支出）
+        # 现金变动：close_price × contracts × 100 - total_commission
+        # contracts<0（卖方）→ close_price*contracts*100 为负（付出钱买回）
+        # 到期作废(close=0) → cash_delta = 0 - commission（只有佣金扣减）
         portfolio["cash_base_usd"] = round(
-            portfolio.get("cash_base_usd", 0) - pnl - comm["total_cost"], 2
+            portfolio.get("cash_base_usd", 0) + close_price * contracts * 100 - comm["total_cost"], 2
+        )
+    elif wheel_type == "covered_call":
+        # ── Covered Call：特殊处理（涉及持股被行权）──
+        # 用户平仓弹窗填的是股票现价
+        # PnL = (strike + premium - stock_price) × abs × 100
+        strike = position.get("strike", 0)
+        open_premium = position.get("open_price", position.get("premium", 0))
+        pnl = round((strike + open_premium - close_price) * abs_contracts * 100, 2)
+        cost = abs(open_premium * abs_contracts * 100)
+        pnl_pct = round((pnl / cost) * 100, 2) if cost > 0 else 0
+
+        record = {
+            "id": generate_id("h_"),
+            "symbol": position["symbol"],
+            "strategy": position["strategy"],
+            "wheel_type": "covered_call",
+            "strike": strike,
+            "expiry": position["expiry"],
+            "contracts": contracts,
+            "open_price": open_premium,
+            "close_price": close_price,
+            "open_delta": position.get("delta", 0),
+            "open_date": position.get("open_date", ""),
+            "close_date": close_date,
+            "pnl": pnl,
+            "pnl_pct": pnl_pct,
+            "commission": comm["commission"],
+            "fees": comm["fees"],
+            "status": "已平仓",
+            "action": "CLOSE",
+            "notes": ""
+        }
+        # covered_call 现金变动（被行权时=买回持股）
+        portfolio["cash_base_usd"] = round(
+            portfolio.get("cash_base_usd", 0) + close_price * contracts * 100 - comm["total_cost"], 2
         )
     else:
-        # 通用期权平仓（LEAPS/自定义期权仓）
-        open_price = position.get("buy_price", position.get("premium", 0))
+        # ── 通用期权平仓（LEAPS/自定义期权仓）──
+        open_price = position.get("open_price", position.get("buy_price", position.get("premium", 0)))
         pnl = round((close_price - open_price) * contracts * 100, 2)
         cost = abs(open_price * contracts * 100)
         pnl_pct = round((pnl / cost) * 100, 2) if cost > 0 else 0
-        
+
         record = {
             "id": generate_id("h_"),
             "symbol": position["symbol"],
@@ -1033,7 +1071,9 @@ def close_position(pos_id):
             "notes": ""
         }
         # 平仓卖出期权：收钱 - 佣金
-        portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) + close_price * contracts * 100 - comm["total_cost"], 2)
+        portfolio["cash_base_usd"] = round(
+            portfolio.get("cash_base_usd", 0) + close_price * contracts * 100 - comm["total_cost"], 2
+        )
     
     # 记录已实现盈利
     add_realized_profit(portfolio, position["strategy"], pnl)
