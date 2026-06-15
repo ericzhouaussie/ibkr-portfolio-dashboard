@@ -933,13 +933,14 @@ def close_position(pos_id):
 
     is_wheel = position["strategy"] == "wheel"
     contracts = position["contracts"]
-    comm = calc_commission(0, close_price, is_option=True, contracts=contracts)
+    abs_contracts = abs(contracts)
+    comm = calc_commission(0, close_price, is_option=True, contracts=abs_contracts)
     
     if is_wheel and position.get("wheel_type"):
         # Wheel策略平仓（特有字段：premium）
         open_premium = position.get("premium", 0)
-        pnl = round((open_premium - close_price) * contracts * 100, 2)
-        cost = abs(open_premium * contracts * 100)
+        pnl = round((open_premium - close_price) * abs_contracts * 100, 2)
+        cost = abs(open_premium * abs_contracts * 100)
         pnl_pct = round((pnl / cost) * 100, 2) if cost > 0 else 0
         
         record = {
@@ -964,7 +965,7 @@ def close_position(pos_id):
             "notes": ""
         }
         # Wheel平仓：买回期权=付钱
-        portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) + (open_premium - close_price * contracts * 100 - comm["total_cost"]), 2)
+        portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) - (close_price * abs_contracts * 100 + comm["total_cost"]), 2)
     else:
         # 通用期权平仓（LEAPS/自定义期权仓）
         open_price = position.get("buy_price", position.get("premium", 0))
