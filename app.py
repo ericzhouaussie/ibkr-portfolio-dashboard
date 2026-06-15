@@ -152,26 +152,34 @@ def load_portfolio():
             for t in p.get("buy_trades", []):
                 t.setdefault("date", "")
         # 迁移：卖方期权的 contracts 存为负数（统一 PnL 公式）
+        # Wheel 策略 = 卖方；LEAPS = 买方
         for pos in data.get("positions", []):
-            if pos.get("type") == "option" and pos.get("contracts", 0) > 0:
-                if pos.get("wheel_type") in SELLER_TYPES:
+            # pos.get("type") 可能不存在，使用 strategy 判断
+            is_option_pos = pos.get("strategy") in ("wheel", "leaps") or pos.get("type") == "option"
+            if is_option_pos and pos.get("contracts", 0) > 0:
+                if pos.get("wheel_type") in SELLER_TYPES or pos.get("strategy") == "wheel":
                     pos["contracts"] = -abs(pos["contracts"])
-        # 迁移：修正旧 Wheel 平仓记录的 pnl/fees 符号（contracts 为负数导致）
+            # 补 open_price（统一 PnL 公式的基准价）
+            if is_option_pos and pos.get("open_price") is None:
+                if pos.get("premium") is not None and pos["premium"] > 0:
+                    pos["open_price"] = pos["premium"]
+                elif pos.get("buy_price") is not None and pos["buy_price"] > 0:
+                    pos["open_price"] = pos["buy_price"]
+            # 按统一公式重算浮动盈亏
+            if is_option_pos and pos.get("open_price", 0) > 0:
+                opp = pos.get("current_option_price", pos.get("open_price", 0))
+                ct = pos.get("contracts", 1)
+                pos["pnl"] = round((opp - pos["open_price"]) * ct * 100, 2)
+                abs_ct = abs(ct)
+                cost = abs(pos["open_price"] * ct * 100)
+                pos["pnl_pct"] = round((pos["pnl"] / cost) * 100, 2) if cost > 0 else 0
+        # 迁移：修正旧历史记录 fees 符号（pnl 符号不需要反转）
         for h in data.get("history", []):
             if h.get("action") == "CLOSE" and h.get("wheel_type") and h.get("contracts", 0) < 0:
-                # pnl 符号反转
-                if "pnl" in h:
-                    h["pnl"] = -h["pnl"]
-                if "pnl_pct" in h:
-                    h["pnl_pct"] = -h["pnl_pct"]
-                # fees 应为正数；同时修正 commission（旧值含 fees，需减去）
                 old_fees = h.get("fees", 0)
                 if old_fees < 0:
                     h["fees"] = -old_fees
-                # 旧数据 commission 字段存的是 total_cost（券商+交易所费）
-                # 需减去 fees 得到纯券商佣金
                 if h.get("fees", 0) > 0 and h.get("commission", 0) > h["fees"]:
-                    # 旧数据：commission 是 total_cost，减去 fees 得到纯券商佣金
                     h["commission"] = round(h.get("commission", 0) - h["fees"], 2)
         # 迁移后落盘
         save_portfolio(data)
@@ -508,20 +516,14 @@ def add_position():
         premium_per_share = float(data.get("premium", 0))
         # 统一 PnL 公式：卖方 contracts 存为负数（表示空头）
         # 用户输入正数，代码判断方向后转为负数
-        # 策略为 wheel 时，按 wheel_type 判断买卖方向
-        wheel_type_from_action = None
-        if contracts_raw < 0:
-            # 用户显式输入负数，按符号来
-            wheel_type_from_action = position["option_type"]
-        # 自动判断 wheel 策略下的方向
+        # 自动判断期权方向
+        # Wheel 策略=卖方（卖期权收权利金）→ contracts 自动为负数
+        # 其他策略（LEAPS/自定义期权仓）：正数=买，负数=卖
         if position["strategy"] == "wheel":
-            # wheel 策略下，正数=买期权，负数=卖期权（由用户决定）
-            contracts = contracts_raw
-            if contracts_raw < 0:
-                wheel_type_from_action = "sell_put" if position["option_type"] == "put" else "sell_call"
+            contracts = -abs(contracts_raw)  # Wheel 永远是卖方
+            wheel_type_from_action = "sell_put" if position["option_type"] == "put" else "sell_call"
         else:
-            # 非 wheel 策略（自定义期权仓）：正数=买，负数=卖
-            contracts = contracts_raw
+            contracts = contracts_raw  # 正=买，负=卖（由用户输入决定）
         position["contracts"] = contracts
         position["quantity"] = abs(contracts) * 100
         position["stock_price"] = float(data.get("stock_price", 0))
