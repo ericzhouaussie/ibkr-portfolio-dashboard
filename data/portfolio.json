@@ -62,28 +62,6 @@
   ],
   "positions": [
     {
-      "id": "711eaa66",
-      "symbol": "META",
-      "strategy": "wheel",
-      "notes": "",
-      "open_date": "2026-06-15",
-      "strike": 100.0,
-      "expiry": "2026-12-31",
-      "option_type": "call",
-      "contracts": -1,
-      "quantity": -100,
-      "stock_price": 0.0,
-      "premium": 10.0,
-      "buy_price": 10.0,
-      "current_option_price": 10.0,
-      "delta": 0.0,
-      "market_value": 1000.0,
-      "pnl": 0,
-      "pnl_pct": 0,
-      "wheel_type": "sell_call",
-      "status": "等待行权"
-    },
-    {
       "id": "789db83c",
       "symbol": "NVDA",
       "strategy": "leaps",
@@ -126,7 +104,7 @@
       "wheel_type": "leaps_long"
     }
   ],
-  "cash_base_usd": 391065.2,
+  "cash_base_usd": 393074.25,
   "cash_flows": [],
   "pnl_baselines": {},
   "history": [
@@ -181,11 +159,33 @@
       "status": "已平仓",
       "action": "CLOSE",
       "notes": ""
+    },
+    {
+      "id": "h_bb2e9d76",
+      "symbol": "META",
+      "strategy": "wheel",
+      "wheel_type": "sell_call",
+      "strike": 100.0,
+      "expiry": "2026-12-31",
+      "contracts": -1,
+      "open_premium": 10.0,
+      "close_price": 20.0,
+      "open_delta": 0.0,
+      "open_date": "2026-06-15",
+      "close_date": "2026-06-15",
+      "pnl": 1000.0,
+      "pnl_pct": 100.0,
+      "commission": 0.95,
+      "fees": -0.05,
+      "total_cost": 0.95,
+      "status": "已平仓",
+      "action": "CLOSE",
+      "notes": ""
     }
   ],
   "realized_profits": {
     "dca": 203000.0,
-    "wheel": 203980.0,
+    "wheel": 204980.0,
     "leaps": -790.0
   }
 }
