@@ -515,15 +515,9 @@ def add_position():
         contracts_raw = int(data.get("contracts", 1))
         premium_per_share = float(data.get("premium", 0))
         # 统一 PnL 公式：卖方 contracts 存为负数（表示空头）
-        # 用户输入正数，代码判断方向后转为负数
-        # 自动判断期权方向
-        # Wheel 策略=卖方（卖期权收权利金）→ contracts 自动为负数
-        # 其他策略（LEAPS/自定义期权仓）：正数=买，负数=卖
-        if position["strategy"] == "wheel":
-            contracts = -abs(contracts_raw)  # Wheel 永远是卖方
-            wheel_type_from_action = "sell_put" if position["option_type"] == "put" else "sell_call"
-        else:
-            contracts = contracts_raw  # 正=买，负=卖（由用户输入决定）
+        # 用户输入正数=买期权，负数=卖期权
+        # 所有策略统一：由用户输入的符号决定买卖方向
+        contracts = contracts_raw  # 正=买，负=卖
         position["contracts"] = contracts
         position["quantity"] = abs(contracts) * 100
         position["stock_price"] = float(data.get("stock_price", 0))
@@ -547,7 +541,14 @@ def add_position():
             else:
                 position["wheel_type"] = "sell_call"
             position["status"] = "等待行权"
-        # LEAPS 等买期权场景
+        else:
+            # 买期权
+            if position["option_type"] == "put":
+                position["wheel_type"] = "long_put"
+            else:
+                position["wheel_type"] = "long_call"
+            position["status"] = "持有"
+        # LEAPS 买期权场景
         if not is_sold and position.get("strategy") == "leaps":
             position["wheel_type"] = "leaps_long"
     else:
@@ -1010,38 +1011,6 @@ def close_position(pos_id):
         portfolio.get("cash_base_usd", 0) + close_price * contracts * 100 - comm["total_cost"], 2
     )
 
-    if False:  # 旧分支已删除，保留缩进结构
-        # ── 通用期权平仓（LEAPS/自定义期权仓）──
-        open_price = position.get("open_price", position.get("buy_price", position.get("premium", 0)))
-        pnl = round((close_price - open_price) * contracts * 100, 2)
-        cost = abs(open_price * contracts * 100)
-        pnl_pct = round((pnl / cost) * 100, 2) if cost > 0 else 0
-
-        record = {
-            "id": generate_id("h_"),
-            "symbol": position["symbol"],
-            "strategy": position["strategy"],
-            "strike": position["strike"],
-            "expiry": position["expiry"],
-            "contracts": contracts,
-            "open_price": open_price,
-            "close_price": close_price,
-            "open_delta": position.get("delta", 0),
-            "open_date": position.get("open_date", ""),
-            "close_date": close_date,
-            "pnl": pnl,
-            "pnl_pct": pnl_pct,
-            "commission": comm["commission"],
-            "fees": comm["fees"],
-            "status": "已平仓",
-            "action": "CLOSE",
-            "notes": ""
-        }
-        # 平仓卖出期权：收钱 - 佣金
-        portfolio["cash_base_usd"] = round(
-            portfolio.get("cash_base_usd", 0) + close_price * contracts * 100 - comm["total_cost"], 2
-        )
-    
     # 记录已实现盈利
     add_realized_profit(portfolio, position["strategy"], pnl)
     

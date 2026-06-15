@@ -348,7 +348,7 @@ function renderStrategies() {
                   const isWheel = p.wheel_type === 'sell_put' || p.wheel_type === 'sell_call';
                   const annualizedROI = p.wheel_type === 'sell_put' ? calcStockAnnualizedROI(p.stock_price, p.strike, p.expiry, p.premium, 'sell_put') : null;
                   const tagHtml = isWheel
-                    ? `<span class="holding-tag ${p.wheel_type}">${p.wheel_type === 'sell_put' ? 'Sell Put' : p.wheel_type === 'sell_call' ? 'Sell Call' : 'Covered Call'}</span>`
+                    ? `<span class="holding-tag ${p.wheel_type}">${p.wheel_type === 'sell_put' ? 'Sell Put' : p.wheel_type === 'sell_call' ? 'Sell Call' : p.wheel_type === 'covered_call' ? 'Covered Call' : p.wheel_type === 'long_put' ? 'Long Put' : p.wheel_type === 'long_call' ? 'Long Call' : p.wheel_type}</span>`
                     : `<span class="holding-tag leaps">${isSold ? 'Sell ' + optType.charAt(0).toUpperCase() + optType.slice(1) : optType.charAt(0).toUpperCase() + optType.slice(1)} ${isSold ? '(空头)' : '(多头)'}</span>`;
                   const premiumTotal = (p.premium || 0) * absContracts * 100;
                   const valLeft = isSold
@@ -456,7 +456,11 @@ function renderAddPositionForm(stratId) {
         </select>
         <input class="input-strike" id="add-strike-${stratId}" type="number" step="any" placeholder="Strike" style="width:70px">
         <input class="input-expiry" id="add-expiry-${stratId}" type="date" style="width:120px">
-        <input class="input-contracts" id="add-contracts-${stratId}" type="number" step="1" placeholder="合约(负=卖)" style="width:85px">
+        <select class="input-direction" id="add-direction-${stratId}" style="width:70px;background:#0f172a;color:#e8eaf0;border:1px solid #1e2235;border-radius:6px;padding:6px 4px;font-size:12px">
+          <option value="sell">📉 卖出</option>
+          <option value="buy">📈 买入</option>
+        </select>
+        <input class="input-contracts" id="add-contracts-${stratId}" type="number" step="1" placeholder="合约数" style="width:75px">
         <input class="input-premium" id="add-premium-${stratId}" type="number" step="any" placeholder="权利金/张" style="width:80px">
         <input class="input-delta" id="add-delta-${stratId}" type="number" step="0.01" placeholder="Delta" style="width:65px">
         <button class="btn btn-sm btn-primary" onclick="addPositionToStrategy('${stratId}')">添加</button>
@@ -485,7 +489,9 @@ function addPositionToStrategy(stratId) {
     // 期权策略（Wheel/LEAPS/自定义期权仓）
     const strike = parseFloat(document.getElementById(`add-strike-${stratId}`).value);
     const expiry = document.getElementById(`add-expiry-${stratId}`).value;
-    const contracts = parseInt(document.getElementById(`add-contracts-${stratId}`).value) || 1;
+    const direction = document.getElementById(`add-direction-${stratId}`).value;
+    const contractsAbs = parseInt(document.getElementById(`add-contracts-${stratId}`).value) || 1;
+    const contracts = direction === 'sell' ? -contractsAbs : contractsAbs;
     const premium = parseFloat(document.getElementById(`add-premium-${stratId}`).value) || 0;
     const optionType = document.getElementById(`add-option-type-${stratId}`).value;
     const delta = parseFloat(document.getElementById(`add-delta-${stratId}`).value) || 0;
@@ -1446,7 +1452,7 @@ function renderHistory() {
           </tr></thead><tbody>`;
         trades.forEach(h => {
           const type = h.strategy==='wheel'
-            ? (h.wheel_type==='sell_put'?'Sell Put':h.wheel_type==='sell_call'?'Sell Call':h.wheel_type==='covered_call'?'Covered Call':'-')
+            ? (h.wheel_type==='sell_put'?'Sell Put':h.wheel_type==='sell_call'?'Sell Call':h.wheel_type==='covered_call'?'Covered Call':h.wheel_type==='long_put'?'Long Put':h.wheel_type==='long_call'?'Long Call':h.wheel_type==='leaps_long'?'LEAPS Long':h.wheel_type||'-')
             : 'LEAPS Call';
           const openP = h.strategy==='wheel'?(h.open_premium||0):(h.open_price||0);
           const comm = h.commission || 0;
