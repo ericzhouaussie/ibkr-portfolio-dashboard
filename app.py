@@ -884,14 +884,16 @@ def update_option_price():
     contracts = pos.get("contracts", 1)
     premium = pos.get("premium", pos.get("buy_price", 0))  # 单张权利金
     abs_contracts = abs(contracts)
-    is_sold = contracts < 0  # 负数=卖期权
+    wheel_type = pos.get("wheel_type", "")
+    # 卖方期权（sell_put/sell_call/covered_call）：权利金-当前价；买方期权：当前价-买入价
+    is_sold_opt = wheel_type in ("sell_put", "sell_call", "covered_call") or contracts < 0
     
     # 卖期权（空头）：盈亏 = (收入权利金 - 当前期权价) * 100 * 合约数
     #   例子：卖Put，收到premium $3，当前价$2 → 盈利$1/张
-    #   例子：卖Put，收到premium $3，当前价$5 → 亏损$2/张
+    #   例子：卖Call，收到premium $4.50，当前价$6.20 → 亏损$1.70/张
     # 买期权（多头）：盈亏 = (当前期权价 - 买入价) * 100 * 合约数
     #   例子：买Call，成本$5，当前价$7 → 盈利$2/张
-    if is_sold:
+    if is_sold_opt:
         pos["pnl"] = round((premium - opt_price) * 100 * abs_contracts, 2)
         pos["market_value"] = round(opt_price * 100 * abs_contracts, 2)
         cost = premium * 100 * abs_contracts
@@ -954,12 +956,15 @@ def close_position(pos_id):
     comm = calc_commission(0, close_price, is_option=True, contracts=abs_contracts)
     
     if is_wheel and position.get("wheel_type"):
-        # Wheel策略平仓（特有字段：premium）
+        # 卖方期权（sell_put / sell_call / covered_call）统一公式：
+        # 现金变动 = 收到权利金 - 平仓成本 - 佣金
+        # PnL = 收到权利金 - 平仓成本（= open_premium * abs_contracts * 100 - close_price * abs_contracts * 100）
+        # 此公式同时覆盖：到期作废(close=0)、主动平仓(close>0)、被行权(close=0)
         open_premium = position.get("premium", 0)
-        pnl = round((open_premium - close_price) * abs_contracts * 100, 2)
-        cost = abs(open_premium * abs_contracts * 100)
-        pnl_pct = round((pnl / cost) * 100, 2) if cost > 0 else 0
-        
+        cost = round(close_price * abs_contracts * 100, 2)
+        pnl = round((open_premium * abs_contracts * 100) - cost, 2)
+        pnl_pct = round((pnl / (open_premium * abs_contracts * 100)) * 100, 2) if open_premium > 0 else 0
+
         record = {
             "id": generate_id("h_"),
             "symbol": position["symbol"],
@@ -981,8 +986,9 @@ def close_position(pos_id):
             "action": "CLOSE",
             "notes": ""
         }
-        # Wheel平仓：买回期权=付钱
-        portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) - (close_price * abs_contracts * 100 + comm["total_cost"]), 2)
+        # Wheel平仓：现金 -= 权利金收入 - 平仓成本 + 佣金
+        cash_delta = open_premium * abs_contracts * 100 - close_price * abs_contracts * 100 + comm["total_cost"]
+        portfolio["cash_base_usd"] = round(portfolio.get("cash_base_usd", 0) - cash_delta, 2)
     else:
         # 通用期权平仓（LEAPS/自定义期权仓）
         open_price = position.get("buy_price", position.get("premium", 0))

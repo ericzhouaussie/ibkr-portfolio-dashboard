@@ -1424,7 +1424,7 @@ function renderHistory() {
           </tr></thead><tbody>`;
         trades.forEach(h => {
           const type = h.strategy==='wheel'
-            ? (h.wheel_type==='sell_put'?'Sell Put':h.wheel_type==='covered_call'?'Covered Call':'-')
+            ? (h.wheel_type==='sell_put'?'Sell Put':h.wheel_type==='sell_call'?'Sell Call':h.wheel_type==='covered_call'?'Covered Call':'-')
             : 'LEAPS Call';
           const openP = h.strategy==='wheel'?(h.open_premium||0):(h.open_price||0);
           const comm = h.commission || 0;
