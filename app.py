@@ -919,7 +919,8 @@ def close_position(pos_id):
         # Wheel策略平仓（特有字段：premium）
         open_premium = position.get("premium", 0)
         pnl = round((open_premium - close_price) * contracts * 100, 2)
-        pnl_pct = round((open_premium / close_price - 1) * 100, 2) if close_price > 0 else 0
+        cost = abs(open_premium * contracts * 100)
+        pnl_pct = round((pnl / cost) * 100, 2) if cost > 0 else 0
         
         record = {
             "id": generate_id("h_"),
@@ -949,7 +950,8 @@ def close_position(pos_id):
         # 通用期权平仓（LEAPS/自定义期权仓）
         open_price = position.get("buy_price", position.get("premium", 0))
         pnl = round((close_price - open_price) * contracts * 100, 2)
-        pnl_pct = round((close_price / open_price - 1) * 100, 2) if open_price > 0 else 0
+        cost = abs(open_price * contracts * 100)
+        pnl_pct = round((pnl / cost) * 100, 2) if cost > 0 else 0
         
         record = {
             "id": generate_id("h_"),
