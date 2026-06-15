@@ -62,28 +62,6 @@
   ],
   "positions": [
     {
-      "id": "2e32b191",
-      "symbol": "NVDA",
-      "strategy": "leaps",
-      "notes": "",
-      "open_date": "2026-06-15",
-      "strike": 100.0,
-      "expiry": "2026-12-31",
-      "option_type": "put",
-      "contracts": -1,
-      "quantity": -100,
-      "stock_price": 0.0,
-      "premium": 10.0,
-      "buy_price": 10.0,
-      "current_option_price": 10.0,
-      "delta": 0.0,
-      "market_value": 1000.0,
-      "pnl": 0,
-      "pnl_pct": 0,
-      "wheel_type": "sell_put",
-      "status": "等待行权"
-    },
-    {
       "id": "ed068655",
       "symbol": "NVDA",
       "strategy": "leaps",
@@ -148,7 +126,7 @@
       "wheel_type": "leaps_long"
     }
   ],
-  "cash_base_usd": 405941.8,
+  "cash_base_usd": 403940.75,
   "cash_flows": [],
   "pnl_baselines": {},
   "history": [
@@ -165,9 +143,9 @@
       "open_delta": 0.0,
       "open_date": "2026-06-15",
       "close_date": "2026-06-15",
-      "pnl": 1000.0,
-      "pnl_pct": 100.0,
-      "commission": 0.65,
+      "pnl": -1000.0,
+      "pnl_pct": -100.0,
+      "commission": 0.6,
       "fees": 0.05,
       "status": "已平仓",
       "action": "CLOSE",
@@ -186,9 +164,9 @@
       "open_delta": 0.0,
       "open_date": "2026-06-15",
       "close_date": "2026-06-15",
-      "pnl": 900.0,
-      "pnl_pct": 90.0,
-      "commission": 0.7,
+      "pnl": -900.0,
+      "pnl_pct": -90.0,
+      "commission": 0.65,
       "fees": 0.05,
       "status": "已平仓",
       "action": "CLOSE",
@@ -233,11 +211,31 @@
       "status": "已平仓",
       "action": "CLOSE",
       "notes": ""
+    },
+    {
+      "id": "h_5ef3f163",
+      "symbol": "NVDA",
+      "strategy": "leaps",
+      "strike": 100.0,
+      "expiry": "2026-12-31",
+      "contracts": -1,
+      "open_price": 10.0,
+      "close_price": 20.0,
+      "open_delta": 0.0,
+      "open_date": "2026-06-15",
+      "close_date": "2026-06-15",
+      "pnl": -1000.0,
+      "pnl_pct": -100.0,
+      "commission": 1.0,
+      "fees": 0.05,
+      "status": "已平仓",
+      "action": "CLOSE",
+      "notes": ""
     }
   ],
   "realized_profits": {
     "dca": 204000.0,
     "wheel": 203480.0,
-    "leaps": -790.0
+    "leaps": -1790.0
   }
 }
