@@ -43,29 +43,6 @@
   ],
   "positions": [
     {
-      "id": "fbba313d",
-      "symbol": "NVDA",
-      "strategy": "leaps",
-      "notes": "",
-      "open_date": "2026-06-17",
-      "strike": 100.0,
-      "expiry": "2026-12-31",
-      "option_type": "call",
-      "contracts": -1,
-      "quantity": 100,
-      "stock_price": 0.0,
-      "premium": 10.0,
-      "current_option_price": 10.0,
-      "delta": 0.0,
-      "open_price": 10.0,
-      "buy_price": 10.0,
-      "market_value": 1000.0,
-      "pnl": -0.0,
-      "pnl_pct": -0.0,
-      "wheel_type": "sell_call",
-      "status": "等待行权"
-    },
-    {
       "id": "92d42842",
       "symbol": "NVDA",
       "strategy": "leaps",
@@ -170,7 +147,7 @@
       "close_date": "2026-06-17",
       "pnl": -1000.0,
       "pnl_pct": -100.0,
-      "commission": 0.1,
+      "commission": 0.05,
       "fees": 0.05,
       "status": "已平仓",
       "action": "CLOSE",
@@ -191,7 +168,7 @@
       "close_date": "2026-06-17",
       "pnl": -1000.0,
       "pnl_pct": -100.0,
-      "commission": 0.15,
+      "commission": 0.1,
       "fees": 0.05,
       "status": "已平仓",
       "action": "CLOSE",
@@ -280,12 +257,33 @@
       "status": "已平仓",
       "action": "CLOSE",
       "notes": ""
+    },
+    {
+      "id": "h_1b834300",
+      "symbol": "NVDA",
+      "strategy": "leaps",
+      "wheel_type": "sell_call",
+      "strike": 100.0,
+      "expiry": "2026-12-31",
+      "contracts": -1,
+      "open_price": 10.0,
+      "close_price": 20.0,
+      "open_delta": 0.0,
+      "open_date": "2026-06-17",
+      "close_date": "2026-06-17",
+      "pnl": -1000.0,
+      "pnl_pct": -100.0,
+      "commission": 1.0,
+      "fees": 0.05,
+      "status": "已平仓",
+      "action": "CLOSE",
+      "notes": ""
     }
   ],
-  "cash_base_usd": 78868.5,
+  "cash_base_usd": 76867.45,
   "cash_base_cny": 500000,
   "realized_profits": {
     "wheel": -5300.0,
-    "leaps": 200.0
+    "leaps": -800.0
   }
 }
