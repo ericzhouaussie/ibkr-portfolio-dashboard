@@ -93,10 +93,20 @@ function getPositionsForStrategy(stratId) {
   return (portfolio.positions || []).filter(p => p.strategy === stratId);
 }
 
-function getStrategyValue(stratId) {
+function getStrategyValue(stratId, useAssignment = false) {
   // 'cash' 策略：显示资金流水累计的现金基础
   if (stratId === 'cash') return portfolio.cash_base_usd || 0;
-  return getPositionsForStrategy(stratId).reduce((s, p) => s + p.market_value, 0);
+  const positions = getPositionsForStrategy(stratId);
+  if (useAssignment && getStrategyType(stratId) === 'option') {
+    // 期权策略（如Wheel）：用潜在被行权金额代替权利金市值
+    return positions.reduce((s, p) => {
+      if ((p.contracts || 0) < 0) {
+        return s + (p.strike || 0) * 100 * Math.abs(p.contracts || 0);
+      }
+      return s + p.market_value;
+    }, 0);
+  }
+  return positions.reduce((s, p) => s + p.market_value, 0);
 }
 
 function getStrategyPnl(stratId) {
@@ -272,7 +282,7 @@ function onDragEnd(e) {
 function renderStrategies() {
   const container = document.getElementById('strategy-list');
   const strategies = portfolio.strategies || [];
-  const total = getTotalValue();
+  const total = strategies.reduce((s, st) => s + getStrategyValue(st.id, true), 0);
   let html = '';
 
   // 收集需要提醒的策略（已实现盈利 >= $5000）
@@ -659,12 +669,12 @@ function renderStrategyPieChart() {
   const el = document.getElementById('chart-strategy-pie');
   if (!el || typeof echarts === 'undefined') return;
   const chart = echarts.init(el);
-  const total = getTotalValue();
   const strategies = portfolio.strategies || [];
+  const total = strategies.reduce((s, st) => s + getStrategyValue(st.id, true), 0);
 
   const data = strategies.map((s, i) => ({
     name: s.icon + ' ' + s.name.split('(')[0].trim(),
-    value: getStrategyValue(s.id),
+    value: getStrategyValue(s.id, true),
     itemStyle: { color: s.color },
   }));
 
@@ -741,13 +751,11 @@ function renderTargetComparison() {
     return;
   }
 
-  const total = getTotalValue();
   const strategies = portfolio.strategies || [];
-
-  let html = '';
+  const total = strategies.reduce((s, st) => s + getStrategyValue(st.id, true), 0);
   targetAlloc.forEach(t => {
     const strat = strategies.find(s => s.id === t.strategy_id) || { name: t.strategy_id, color: '#8b8d9a' };
-    const actual = getStrategyValue(t.strategy_id);
+    const actual = getStrategyValue(t.strategy_id, true);
     const actualPct = total ? actual / total * 100 : 0;
     const targetPct = t.percent;
     const diff = actualPct - targetPct;
