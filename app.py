@@ -1044,6 +1044,14 @@ def clear_history():
 @app.route("/api/export/history")
 def export_history():
     """导出交易记录为 Excel 文件"""
+    try:
+        return _export_history_impl()
+    except Exception as e:
+        import traceback
+        app.logger.error(f"Export error: {e}\n{traceback.format_exc()}")
+        return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
+
+def _export_history_impl():
     portfolio = load_portfolio()
     history = portfolio.get("history", [])
 
