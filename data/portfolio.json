@@ -64,10 +64,23 @@
       "pnl_pct": -0.0,
       "wheel_type": "sell_put",
       "status": "等待行权"
+    },
+    {
+      "id": "2d8517fd",
+      "symbol": "AAPL",
+      "strategy": "dca",
+      "notes": "",
+      "open_date": "2026-06-17",
+      "quantity": 10.0,
+      "avg_price": 100.0,
+      "current_price": 100.0,
+      "market_value": 1000.0,
+      "pnl": 0.0,
+      "pnl_pct": 0.0
     }
   ],
   "history": [],
-  "cash_base_usd": 65445.4,
+  "cash_base_usd": 64445.05,
   "cash_base_cny": 500000,
   "realized_profits": {}
 }
