@@ -73,14 +73,14 @@
       "open_date": "2026-06-17",
       "quantity": 10.0,
       "avg_price": 100.0,
-      "current_price": 100.0,
-      "market_value": 1000.0,
-      "pnl": 0.0,
-      "pnl_pct": 0.0
+      "current_price": 200.0,
+      "market_value": 2000.0,
+      "pnl": 1000.0,
+      "pnl_pct": 100.0
     }
   ],
   "history": [],
-  "cash_base_usd": 64445.05,
+  "cash_base_usd": 63444.7,
   "cash_base_cny": 500000,
   "realized_profits": {}
 }
