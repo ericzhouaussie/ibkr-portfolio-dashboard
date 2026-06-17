@@ -41,7 +41,31 @@
       "type": "stock"
     }
   ],
-  "positions": [],
+  "positions": [
+    {
+      "id": "71003f6f",
+      "symbol": "META",
+      "strategy": "wheel",
+      "notes": "",
+      "open_date": "2026-06-17",
+      "strike": 100.0,
+      "expiry": "2026-12-31",
+      "option_type": "call",
+      "contracts": -1,
+      "quantity": 100,
+      "stock_price": 0.0,
+      "premium": 10.0,
+      "current_option_price": 10.0,
+      "delta": 0.0,
+      "open_price": 10.0,
+      "buy_price": 10.0,
+      "market_value": 1000.0,
+      "pnl": 0,
+      "pnl_pct": 0,
+      "wheel_type": "sell_call",
+      "status": "等待行权"
+    }
+  ],
   "history": [
     {
       "id": "h_866dba96",
@@ -58,7 +82,7 @@
       "close_date": "2026-06-17",
       "pnl": -1000.0,
       "pnl_pct": -100.0,
-      "commission": 0.8,
+      "commission": 0.75,
       "fees": 0.05,
       "status": "已平仓",
       "action": "CLOSE",
@@ -79,7 +103,7 @@
       "close_date": "2026-06-17",
       "pnl": -1000.0,
       "pnl_pct": -100.0,
-      "commission": 0.85,
+      "commission": 0.8,
       "fees": 0.05,
       "status": "已平仓",
       "action": "CLOSE",
@@ -100,7 +124,7 @@
       "close_date": "2026-06-17",
       "pnl": 900.0,
       "pnl_pct": 90.0,
-      "commission": 0.9,
+      "commission": 0.85,
       "fees": 0.05,
       "status": "已平仓",
       "action": "CLOSE",
@@ -121,14 +145,14 @@
       "close_date": "2026-06-17",
       "pnl": 900.0,
       "pnl_pct": 90.0,
-      "commission": 0.95,
+      "commission": 0.9,
       "fees": 0.05,
       "status": "已平仓",
       "action": "CLOSE",
       "notes": ""
     }
   ],
-  "cash_base_usd": 68651.7,
+  "cash_base_usd": 69651.7,
   "cash_base_cny": 500000,
   "realized_profits": {
     "wheel": -200.0
