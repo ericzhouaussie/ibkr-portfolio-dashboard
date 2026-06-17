@@ -13,7 +13,7 @@
       "name": "轮子策略仓 (Wheel)",
       "icon": "🎡",
       "color": "#22c55e",
-      "desc": "Sell Put → 被行权 → Covered Call → 卖出",
+      "desc": "Sell Put → 被行权 → Covered Call → 卖出（注意：只能卖出期权，不能买进期权）",
       "type": "option"
     },
     {

@@ -104,7 +104,7 @@ DEFAULT_STRATEGIES = [
     {"id": "dca", "name": "定投仓 (DCA)", "icon": "📊", "color": "#6366f1",
      "desc": "定期定额买入个股和大盘ETF", "type": "stock"},
     {"id": "wheel", "name": "轮子策略仓 (Wheel)", "icon": "🎡", "color": "#22c55e",
-     "desc": "Sell Put → 被行权 → Covered Call → 卖出", "type": "option"},
+     "desc": "Sell Put → 被行权 → Covered Call → 卖出（注意：只能卖出期权，不能买进期权）", "type": "option"},
     {"id": "leaps", "name": "LEAPS Call仓", "icon": "🚀", "color": "#a855f7",
      "desc": "长期期权（到期1年+）看多策略", "type": "option"},
     {"id": "swing", "name": "波段仓 (Swing)", "icon": "⚡", "color": "#f59e0b",
