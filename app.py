@@ -1134,7 +1134,13 @@ def _export_history_impl():
         # 列宽自适应
         for col_idx, col in enumerate(df.columns, 1):
             col_letter = get_column_letter(col_idx)
-            max_len = max(df[col].astype(str).map(len).max(), len(str(col))) + 2
+            try:
+                col_str_len = df[col].fillna("").astype(str).str.len().max()
+                if pd.isna(col_str_len):
+                    col_str_len = 0
+            except Exception:
+                col_str_len = 0
+            max_len = max(int(col_str_len), len(str(col))) + 2
             ws.column_dimensions[col_letter].width = min(max_len, 30)
 
         # 数据行样式 + 正负色
