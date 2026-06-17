@@ -41,47 +41,9 @@
       "type": "stock"
     }
   ],
-  "positions": [
-    {
-      "id": "2d8517fd",
-      "symbol": "AAPL",
-      "strategy": "dca",
-      "notes": "",
-      "open_date": "2026-06-17",
-      "quantity": 10.0,
-      "avg_price": 100.0,
-      "current_price": 200.0,
-      "market_value": 2000.0,
-      "pnl": 1000.0,
-      "pnl_pct": 100.0
-    }
-  ],
-  "history": [
-    {
-      "id": "h_4502b7a6",
-      "symbol": "META",
-      "strategy": "wheel",
-      "wheel_type": "sell_put",
-      "strike": 100.0,
-      "expiry": "2026-12-31",
-      "contracts": -1,
-      "open_price": 10.0,
-      "close_price": 1.0,
-      "open_delta": 0.0,
-      "open_date": "2026-06-17",
-      "close_date": "2026-06-17",
-      "pnl": 900.0,
-      "pnl_pct": 90.0,
-      "commission": 0.9,
-      "fees": 0.05,
-      "status": "已平仓",
-      "action": "CLOSE",
-      "notes": ""
-    }
-  ],
-  "cash_base_usd": 63343.65,
+  "positions": [],
+  "history": [],
+  "cash_base_usd": 100000,
   "cash_base_cny": 500000,
-  "realized_profits": {
-    "wheel": 0.0
-  }
+  "realized_profits": {}
 }

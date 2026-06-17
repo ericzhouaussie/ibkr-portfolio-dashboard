@@ -1537,6 +1537,28 @@ function clearHistory() {
     });
 }
 
+function resetAllRealizedProfits() {
+  if (!confirm('确认重置所有策略的已实现盈利（累计数归零）？\n此操作不可撤销。')) return;
+  
+  fetch('/api/realized-profits', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  })
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) {
+        realizedProfits = res.realized_profits || {};
+        portfolio.realized_profits = realizedProfits;
+        renderStrategies();
+        showToast('✅ 已实现盈利已重置');
+      }
+    })
+    .catch(err => {
+      showToast('❌ 重置失败', 'error');
+    });
+}
+
 // === Toast ===
 function showToast(msg, type = 'success') {
   const t = document.createElement('div');

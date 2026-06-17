@@ -716,8 +716,8 @@ def get_realized_profits():
 
 @app.route("/api/realized-profits", methods=["POST"])
 def reset_realized_profit():
-    """重置某个策略的已实现盈利（可选）"""
-    data = request.get_json()
+    """重置已实现盈利：指定 strategy 则重置单个，否则重置全部"""
+    data = request.get_json() or {}
     portfolio = load_portfolio()
     strategy = data.get("strategy", "")
     if strategy:
@@ -725,7 +725,13 @@ def reset_realized_profit():
         if strategy in rp:
             rp[strategy] = 0.0
             portfolio["realized_profits"] = rp
-            save_portfolio(portfolio)
+    else:
+        # 重置全部
+        rp = portfolio.get("realized_profits", {})
+        for k in rp:
+            rp[k] = 0.0
+        portfolio["realized_profits"] = rp
+    save_portfolio(portfolio)
     return jsonify({"success": True, "realized_profits": portfolio.get("realized_profits", {})})
 
 
