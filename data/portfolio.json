@@ -74,7 +74,30 @@
       "strike": 100.0,
       "expiry": "2026-12-31",
       "option_type": "put",
-      "contracts": 1,
+      "contracts": -1,
+      "quantity": 100,
+      "stock_price": 0.0,
+      "premium": 10.0,
+      "current_option_price": 10.0,
+      "delta": 0.0,
+      "open_price": 10.0,
+      "buy_price": 10.0,
+      "market_value": 1000.0,
+      "pnl": -0.0,
+      "pnl_pct": -0.0,
+      "wheel_type": "long_put",
+      "status": "持有"
+    },
+    {
+      "id": "718af18e",
+      "symbol": "META",
+      "strategy": "wheel",
+      "notes": "",
+      "open_date": "2026-06-17",
+      "strike": 100.0,
+      "expiry": "2026-12-31",
+      "option_type": "put",
+      "contracts": -1,
       "quantity": 100,
       "stock_price": 0.0,
       "premium": 10.0,
@@ -85,12 +108,12 @@
       "market_value": 1000.0,
       "pnl": 0,
       "pnl_pct": 0,
-      "wheel_type": "long_put",
-      "status": "持有"
+      "wheel_type": "sell_put",
+      "status": "等待行权"
     }
   ],
   "history": [],
-  "cash_base_usd": 72856.95,
+  "cash_base_usd": 73856.95,
   "cash_base_cny": 500000,
   "realized_profits": {}
 }
