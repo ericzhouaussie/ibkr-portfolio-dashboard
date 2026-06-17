@@ -1155,8 +1155,13 @@ def export_history():
     output.seek(0)
     from flask import send_file
     filename = f"IBKR交易记录_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-    return send_file(output, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    as_attachment=True, download_name=filename)
+    return send_file(
+        output,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        as_attachment=True,
+        download_name=filename,
+        max_age=0
+    )
 
 
 @app.route("/api/history/<hist_id>", methods=["DELETE"])
