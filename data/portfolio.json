@@ -41,7 +41,31 @@
       "type": "stock"
     }
   ],
-  "positions": [],
+  "positions": [
+    {
+      "id": "26620dd2",
+      "symbol": "META",
+      "strategy": "wheel",
+      "notes": "",
+      "open_date": "2026-06-17",
+      "strike": 100.0,
+      "expiry": "2026-12-31",
+      "option_type": "call",
+      "contracts": -1,
+      "quantity": 100,
+      "stock_price": 0.0,
+      "premium": 10.0,
+      "current_option_price": 10.0,
+      "delta": 0.0,
+      "open_price": 10.0,
+      "buy_price": 10.0,
+      "market_value": 1000.0,
+      "pnl": 0,
+      "pnl_pct": 0,
+      "wheel_type": "sell_call",
+      "status": "等待行权"
+    }
+  ],
   "history": [
     {
       "id": "h_beb262ba",
@@ -58,14 +82,14 @@
       "close_date": "2026-06-17",
       "pnl": -1000.0,
       "pnl_pct": -100.0,
-      "commission": 1.0,
+      "commission": 0.95,
       "fees": 0.05,
       "status": "已平仓",
       "action": "CLOSE",
       "notes": ""
     }
   ],
-  "cash_base_usd": 98998.95,
+  "cash_base_usd": 99998.95,
   "cash_base_cny": 500000,
   "realized_profits": {
     "wheel": -1000.0
