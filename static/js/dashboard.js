@@ -315,8 +315,9 @@ function renderStrategies() {
               <div class="strategy-analytics" style="display:flex;gap:12px;font-size:0.72rem;color:var(--text-dim);margin-top:3px">
                 <span>成本: <b style="color:var(--text)">${fmtNum(totalCost)}</b></span>
                 <span>占比: <b style="color:var(--text)">${stratPctTag}</b></span>
-                ${totalCost > 0 ? `<span>加权回报: <b class="${pctClass(weightedReturn)}">${fmtPct(weightedReturn)}</b></span>` : ''}
-                ${realizedProfit !== 0 ? `<span>已实现盈利: <b class="${pctClass(realizedProfit)}">${fmtNum(realizedProfit)}</b></span>` : ''}
+                ${getStrategyType(s.id) === 'option' ? `
+                  <span>已实现盈利: <b class="${pctClass(realizedProfit)}">${fmtNum(realizedProfit)}</b></span>
+                ` : (totalCost > 0 ? `<span>加权回报: <b class="${pctClass(weightedReturn)}">${fmtPct(weightedReturn)}</b></span>` : '')}
                 ${potentialAssignment > 0 ? `<span>潜在被行权金额: <b style="color:#f59e0b">${fmtNum(potentialAssignment)}</b></span>` : ''}
               </div>
             ` : ''}
@@ -324,7 +325,7 @@ function renderStrategies() {
           <div class="strategy-meta">
             <div class="strategy-value">${fmtNum(value)}</div>
             <div class="strategy-pct">${pct}%</div>
-            ${s.id !== 'cash' ? `<div class="strategy-pnl ${pctClass(weightedReturn)}">${fmtPct(weightedReturn)}</div>` : ''}
+            ${s.id !== 'cash' ? `<div class="strategy-pnl ${pctClass(getStrategyType(s.id) === 'option' ? realizedProfit : weightedReturn)}">${getStrategyType(s.id) === 'option' ? fmtNum(realizedProfit) : fmtPct(weightedReturn)}</div>` : ''}
           </div>
           ${s.id !== 'cash' && s.id !== 'dca' && s.id !== 'wheel' && s.id !== 'leaps' ? `<button class="btn-delete-strategy" onclick="event.stopPropagation(); confirmDeleteStrategy('${s.id}','${s.name.replace(/'/g, "\\'")}')" title="删除策略">🗑️</button>` : ''}
           ${isDraggable ? `<div class="strategy-drag-handle" style="color:var(--text-dim);font-size:1rem;padding:0 6px;cursor:grab" title="拖动排序">⋮⋮</div>` : ''}
