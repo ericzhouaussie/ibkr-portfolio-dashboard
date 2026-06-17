@@ -41,31 +41,7 @@
       "type": "stock"
     }
   ],
-  "positions": [
-    {
-      "id": "067f76b4",
-      "symbol": "META",
-      "strategy": "wheel",
-      "notes": "",
-      "open_date": "2026-06-17",
-      "strike": 100.0,
-      "expiry": "2026-12-31",
-      "option_type": "call",
-      "contracts": -1,
-      "quantity": 100,
-      "stock_price": 0.0,
-      "premium": 10.0,
-      "current_option_price": 10.0,
-      "delta": 0.0,
-      "open_price": 10.0,
-      "buy_price": 10.0,
-      "market_value": 1000.0,
-      "pnl": -0.0,
-      "pnl_pct": -0.0,
-      "wheel_type": "long_call",
-      "status": "持有"
-    }
-  ],
+  "positions": [],
   "history": [
     {
       "id": "h_febb8cb6",
@@ -82,16 +58,37 @@
       "close_date": "2026-06-17",
       "pnl": 900.0,
       "pnl_pct": 90.0,
-      "commission": 0.9,
+      "commission": 0.85,
+      "fees": 0.05,
+      "status": "已平仓",
+      "action": "CLOSE",
+      "notes": ""
+    },
+    {
+      "id": "h_9128e9fe",
+      "symbol": "META",
+      "strategy": "wheel",
+      "wheel_type": "long_call",
+      "strike": 100.0,
+      "expiry": "2026-12-31",
+      "contracts": -1,
+      "open_price": 10.0,
+      "close_price": 1.0,
+      "open_delta": 0.0,
+      "open_date": "2026-06-17",
+      "close_date": "2026-06-17",
+      "pnl": 900.0,
+      "pnl_pct": 90.0,
+      "commission": 1.0,
       "fees": 0.05,
       "status": "已平仓",
       "action": "CLOSE",
       "notes": ""
     }
   ],
-  "cash_base_usd": 83783.2,
+  "cash_base_usd": 83682.15,
   "cash_base_cny": 500000,
   "realized_profits": {
-    "wheel": -4200.0
+    "wheel": -3300.0
   }
 }
