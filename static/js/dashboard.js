@@ -750,7 +750,7 @@ function renderTargetComparison() {
     container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px">点击"目标配比"按钮设置</p>';
     return;
   }
-
+  let html = '';
   const strategies = portfolio.strategies || [];
   const total = strategies.reduce((s, st) => s + getStrategyValue(st.id, true), 0);
   targetAlloc.forEach(t => {
@@ -843,6 +843,12 @@ function updateGoal() {
 // === Modals ===
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function openTargetModal() {
+  const container = document.getElementById('target-rows');
+  container.innerHTML = '';
+  targetAlloc.forEach(t => addTargetRow(t.strategy_id, t.percent));
+  document.getElementById('target-modal').classList.add('active');
+}
 
 // === Price Refresh ===
 function refreshPrices() {
