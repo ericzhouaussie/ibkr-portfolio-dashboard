@@ -72,7 +72,7 @@
       "close_date": "2026-06-17",
       "pnl": 900.0,
       "pnl_pct": 90.0,
-      "commission": 1.0,
+      "commission": 0.95,
       "fees": 0.05,
       "status": "已平仓",
       "action": "CLOSE",
