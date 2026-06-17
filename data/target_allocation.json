@@ -1,9 +1,22 @@
-{
-  "targets": {
-    "dca": 30,
-    "wheel": 25,
-    "leaps": 20,
-    "swing": 15,
-    "cash": 10
+[
+  {
+    "strategy_id": "dca",
+    "percent": 30
+  },
+  {
+    "strategy_id": "wheel",
+    "percent": 20
+  },
+  {
+    "strategy_id": "leaps",
+    "percent": 25
+  },
+  {
+    "strategy_id": "swing",
+    "percent": 5
+  },
+  {
+    "strategy_id": "cash",
+    "percent": 20
   }
-}
+]
