@@ -357,7 +357,9 @@ function renderStrategies() {
                   const absContracts = Math.abs(p.contracts || 0);
                   const optType = p.option_type || 'put';
                   const isWheel = p.wheel_type === 'sell_put' || p.wheel_type === 'sell_call';
-                  const annualizedROI = p.wheel_type === 'sell_put' ? calcStockAnnualizedROI(p.stock_price, p.strike, p.expiry, p.premium, 'sell_put') : null;
+                  const annualizedROI = p.annualized_return != null && p.annualized_return !== 0
+                    ? p.annualized_return
+                    : (p.wheel_type === 'sell_put' ? calcStockAnnualizedROI(p.stock_price, p.strike, p.expiry, p.premium, 'sell_put') : null);
                   const tagHtml = isWheel
                     ? `<span class="holding-tag ${p.wheel_type}">${p.wheel_type === 'sell_put' ? 'Sell Put' : p.wheel_type === 'sell_call' ? 'Sell Call' : p.wheel_type === 'covered_call' ? 'Covered Call' : p.wheel_type === 'long_put' ? 'Long Put' : p.wheel_type === 'long_call' ? 'Long Call' : p.wheel_type}</span>`
                     : `<span class="holding-tag leaps">${isSold ? 'Sell ' + optType.charAt(0).toUpperCase() + optType.slice(1) : optType.charAt(0).toUpperCase() + optType.slice(1)} ${isSold ? '(空头)' : '(多头)'}</span>`;
@@ -474,6 +476,7 @@ function renderAddPositionForm(stratId) {
         <input class="input-contracts" id="add-contracts-${stratId}" type="number" step="1" placeholder="合约数" style="width:75px">
         <input class="input-premium" id="add-premium-${stratId}" type="number" step="any" placeholder="权利金/张" style="width:80px">
         <input class="input-delta" id="add-delta-${stratId}" type="number" step="0.01" placeholder="Delta" style="width:65px">
+        <input class="input-annualized" id="add-annualized-${stratId}" type="number" step="0.1" placeholder="年化%" style="width:70px">
         <button class="btn btn-sm btn-primary" onclick="addPositionToStrategy('${stratId}')">添加</button>
       </div>
       ${profitSourceSelect}
@@ -506,6 +509,7 @@ function addPositionToStrategy(stratId) {
     const premium = parseFloat(document.getElementById(`add-premium-${stratId}`).value) || 0;
     const optionType = document.getElementById(`add-option-type-${stratId}`).value;
     const delta = parseFloat(document.getElementById(`add-delta-${stratId}`).value) || 0;
+    const annualizedReturn = parseFloat(document.getElementById(`add-annualized-${stratId}`).value) || null;
     
     if (!strike || !expiry) { showToast('请填写完整信息', 'error'); return; }
     
@@ -528,6 +532,7 @@ function addPositionToStrategy(stratId) {
         buy_price: premium,
         current_option_price: premium,
         delta: delta,
+        annualized_return: annualizedReturn,
         profit_source: profitSource || undefined,
         profit_source: profitSource,
       }),

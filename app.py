@@ -524,6 +524,7 @@ def add_position():
         position["premium"] = premium_per_share
         position["current_option_price"] = premium_per_share
         position["delta"] = float(data.get("delta", 0))
+        position["annualized_return"] = float(data.get("annualized_return") or 0) or None
         abs_contracts = abs(contracts)
         is_sold = contracts < 0
         # open_price 统一为开仓价：买方=买入成本，卖方=收取的权利金
